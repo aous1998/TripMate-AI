@@ -67,6 +67,7 @@ Create a .env file in the project root with the following variables:
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/travel_db
 GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=openai/gpt-oss-120b
 AVIATIONSTACK_API_KEY=your_aviationstack_api_key
 TAVILY_API_KEY=your_tavily_api_key
 DEFAULT_ORIGIN_IATA=FRA

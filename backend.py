@@ -51,8 +51,9 @@ if not GROQ_API_KEY:
 # LLM
 # =========================
 
+# Groq retires models over time; override with GROQ_MODEL in .env if needed.
 llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
+    model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
     api_key=GROQ_API_KEY
 )
 
