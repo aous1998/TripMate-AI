@@ -75,7 +75,10 @@ async def travel_planner(request_data: TravelRequest):
                 "agents_run": result["agents_run"],
                 "flight_results": result["flight_results"],
                 "hotel_results": result["hotel_results"],
+                "weather": result["weather"],
+                "local_tips": result["local_tips"],
                 "itinerary": result["itinerary"],
+                "budget": result["budget"],
                 "llm_calls": result["llm_calls"],
             }
         )

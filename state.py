@@ -9,8 +9,22 @@ from pydantic import BaseModel, Field
 
 # Specialist agents the supervisor can route to. AGENT_ORDER is the order
 # they run in, so each agent sees the results it depends on.
-AgentName = Literal["flight_agent", "hotel_agent", "itinerary_agent"]
-AGENT_ORDER: list[str] = ["flight_agent", "hotel_agent", "itinerary_agent"]
+AgentName = Literal[
+    "flight_agent",
+    "hotel_agent",
+    "weather_agent",
+    "local_guide_agent",
+    "itinerary_agent",
+    "budget_agent",
+]
+AGENT_ORDER: list[str] = [
+    "flight_agent",
+    "hotel_agent",
+    "weather_agent",
+    "local_guide_agent",
+    "itinerary_agent",
+    "budget_agent",
+]
 
 
 class TripDetails(BaseModel):
@@ -54,6 +68,24 @@ class SupervisorDecision(BaseModel):
     )
 
 
+class BudgetLine(BaseModel):
+    category: str = Field(
+        description="Cost category, e.g. Flights, Accommodation, Food, Local transport, Activities.",
+    )
+    amount_eur: float = Field(
+        description="Estimated cost in EUR for the whole trip and all travelers.",
+    )
+    note: str = Field(
+        default="",
+        description="Short basis for the estimate, e.g. '6 nights at about 120 EUR'.",
+    )
+
+
+class BudgetEstimate(BaseModel):
+    lines: list[BudgetLine] = Field(description="One line per cost category.")
+    assumptions: str = Field(description="One or two sentences on the main assumptions.")
+
+
 class TravelState(TypedDict):
     messages: Annotated[list[AnyMessage], operator.add]
     user_query: str
@@ -63,5 +95,8 @@ class TravelState(TypedDict):
     next_agent: str            # where the supervisor routes next
     flight_results: str
     hotel_results: str
+    weather: str
+    local_tips: str
     itinerary: str
+    budget: dict | None        # set by budget_agent; totals are computed in code
     llm_calls: int

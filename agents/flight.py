@@ -15,7 +15,7 @@ def flight_agent(state: TravelState):
         query = state["user_query"]
 
     return {
-        "flight_results": search_flights(query),
+        "flight_results": search_flights(query, limit=5),
         "completed": mark_done(state, "flight_agent"),
         "messages": [AIMessage(content="Flight results fetched.")],
     }

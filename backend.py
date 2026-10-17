@@ -79,6 +79,9 @@ def run_travel_agent(user_input: str, thread_id: str | None = None):
         "agents_run": result.get("completed", []),
         "flight_results": result.get("flight_results", ""),
         "hotel_results": result.get("hotel_results", ""),
+        "weather": result.get("weather", ""),
+        "local_tips": result.get("local_tips", ""),
         "itinerary": result.get("itinerary", ""),
+        "budget": result.get("budget"),
         "llm_calls": result.get("llm_calls", 0),
     }

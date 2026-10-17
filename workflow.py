@@ -1,24 +1,30 @@
 """Builds the TripMate graph: a supervisor that routes to specialist agents.
 
-    START -> supervisor -> (flight_agent | hotel_agent | itinerary_agent) -> supervisor -> ...
+    START -> supervisor -> one of the six specialists -> supervisor -> ...
                        \\-> responder -> END   once every planned agent has run
 """
 
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END, START, StateGraph
 
+from agents.budget import budget_agent
 from agents.flight import flight_agent
 from agents.hotel import hotel_agent
 from agents.itinerary import itinerary_agent
+from agents.local_guide import local_guide_agent
 from agents.responder import responder_agent
 from agents.supervisor import route, supervisor_agent
+from agents.weather import weather_agent
 from state import AGENT_ORDER, TravelState
 
 
 SPECIALISTS = {
     "flight_agent": flight_agent,
     "hotel_agent": hotel_agent,
+    "weather_agent": weather_agent,
+    "local_guide_agent": local_guide_agent,
     "itinerary_agent": itinerary_agent,
+    "budget_agent": budget_agent,
 }
 
 assert list(SPECIALISTS) == AGENT_ORDER, "SPECIALISTS must match state.AGENT_ORDER"
@@ -54,6 +60,9 @@ def new_request_state(user_input: str) -> dict:
         "next_agent": "",
         "flight_results": "",
         "hotel_results": "",
+        "weather": "",
+        "local_tips": "",
         "itinerary": "",
+        "budget": None,
         "llm_calls": 0,
     }

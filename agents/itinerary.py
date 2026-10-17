@@ -21,7 +21,14 @@ Flight Results:
 Hotel Results:
 {state.get('hotel_results') or 'Not requested.'}
 
+Weather:
+{state.get('weather') or 'Not requested.'}
+
+Local Tips:
+{state.get('local_tips') or 'Not requested.'}
+
 Make the itinerary practical, budget-aware, and easy to follow.
+Plan indoor activities on days with bad weather in the forecast.
 Show all costs in euros (EUR) unless the user asks for a different currency.
 """
 

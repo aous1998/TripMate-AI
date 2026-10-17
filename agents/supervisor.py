@@ -12,10 +12,14 @@ Read the user's request, extract the trip details, and choose which specialist a
 Agents:
 - flight_agent: live flight information between the origin and the destination.
 - hotel_agent: hotel and accommodation suggestions at the destination.
+- weather_agent: the weather forecast at the destination.
+- local_guide_agent: entry/visa basics, local transport, money and etiquette tips.
 - itinerary_agent: a practical day-by-day travel plan.
+- budget_agent: an itemised cost estimate in EUR, checked against the user's budget.
 
 Choose only the agents the request actually needs. A complete trip plan needs all of them;
-a question that is only about hotels needs only hotel_agent.
+a question that is only about hotels needs only hotel_agent, and a weather question
+needs only weather_agent.
 If the user does not mention a currency, use EUR."""
 
 

@@ -8,16 +8,24 @@ Maintained by [Aous Abdulhamid](https://github.com/aous1998).
 
 Planning a trip usually means jumping between multiple websites, tools, and spreadsheets. This project brings that flow into one experience: a supervisor agent reads the request, extracts the trip details, and routes work to only the specialist agents it needs:
 
-- a flight-search agent,
-- a hotel-research agent,
-- an itinerary-planning agent,
+| Agent | What it does | Data source |
+| --- | --- | --- |
+| `flight_agent` | Live flights between origin and destination | AviationStack |
+| `hotel_agent` | Hotel suggestions at the destination | Tavily search |
+| `weather_agent` | 7-day forecast at the destination | Open-Meteo |
+| `local_guide_agent` | Entry, transport, money and etiquette tips | Tavily search + LLM |
+| `itinerary_agent` | Day-by-day plan that uses all of the above | LLM |
+| `budget_agent` | Itemised EUR estimate checked against the user's budget | LLM structured output + ECB rates (Frankfurter) |
 
-before a responder agent writes the final answer.
+A responder agent then writes the final answer.
 
 ## Features
 
 - ✈️ Flight research using AviationStack
 - 🏨 Hotel suggestions using Tavily search
+- 🌦️ Weather forecasts using Open-Meteo
+- 🗺️ Local tips (entry, transport, money, etiquette)
+- 💶 Itemised budget in EUR, with totals computed in code and foreign budgets converted at ECB rates
 - 🧭 Supervisor agent that extracts typed trip details and routes to only the agents a request needs
 - 🧠 Multi-agent orchestration with LangGraph
 - 📝 Structured travel itinerary generation
@@ -36,6 +44,8 @@ before a responder agent writes the final answer.
 - PostgreSQL
 - Tavily API
 - AviationStack API
+- Open-Meteo API (no key needed)
+- Frankfurter API for ECB exchange rates (no key needed)
 
 ## Project Structure
 
@@ -46,8 +56,8 @@ before a responder agent writes the final answer.
 ├── workflow.py           # LangGraph graph: supervisor, specialists, responder
 ├── state.py              # Typed graph state and supervisor schemas
 ├── llm.py                # Shared Groq chat model
-├── agents/               # Supervisor, flight, hotel, itinerary, responder
-├── tools/                # Flight and web search integrations
+├── agents/               # Supervisor, six specialists, responder
+├── tools/                # Flight, web search, weather and currency integrations
 ├── tests/                # Offline tests (fake LLM, no API keys needed)
 ├── cli.py                # Run one request from the terminal
 ├── requirements.txt      # Python dependencies
@@ -121,13 +131,13 @@ curl -X POST http://127.0.0.1:8000/api/travel \
 ## How the Workflow Works
 
 ```text
-START -> supervisor -> flight_agent | hotel_agent | itinerary_agent -> supervisor -> ... -> responder -> END
+START -> supervisor -> one of six specialists -> supervisor -> ... -> responder -> END
 ```
 
 1. The user submits a travel request.
 2. The **supervisor** makes one structured-output LLM call that extracts typed trip details (origin, destination, days, budget, currency, travelers, interests) and picks which specialists the request needs.
 3. The supervisor routes to the next pending specialist through a conditional edge. Each specialist writes its result to the shared state and hands back to the supervisor.
-4. Specialists always run in dependency order (flights and hotels before the itinerary), whatever order the LLM listed them in.
+4. Specialists always run in dependency order (research first, then the itinerary, then the budget), whatever order the LLM listed them in.
 5. When every planned agent has run, the **responder** writes the final answer from whatever was gathered.
 
 If structured output fails, the supervisor falls back to running every agent, so the request still gets an answer.
