@@ -19,6 +19,9 @@ def get_llm():
         _llm = ChatGroq(
             model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
             api_key=api_key,
+            # A full trip makes ~5 calls; extra retries (which honour Groq's
+            # retry-after header) ride out free-tier rate limits.
+            max_retries=4,
         )
 
     return _llm

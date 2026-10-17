@@ -1,6 +1,6 @@
 # ✈️ TripMate AI — A Multi-Agent Travel Planner with LangGraph
 
-An open-source AI travel planner that turns a natural-language trip request into a practical travel plan with flight suggestions, hotel ideas, and a day-by-day itinerary. The project uses a multi-agent workflow built with LangGraph, LangChain, and FastAPI.
+An open-source AI travel planner that turns a natural-language trip request into a practical plan: flights, hotels, weather, local tips, a day-by-day itinerary and an itemised budget in euros. A LangGraph supervisor routes each request to the specialist agents it needs, the agents reach every API through an MCP server, the user can approve or change the research before the plan is built, and guardrails screen both input and output.
 
 Maintained by [Aous Abdulhamid](https://github.com/aous1998).
 
@@ -122,6 +122,13 @@ Then open your browser at:
 http://127.0.0.1:8000/
 ```
 
+## Running with Docker
+
+```bash
+docker build -t tripmate-ai .
+docker run --env-file .env -p 8000:8000 tripmate-ai
+```
+
 ## API Endpoints
 
 - GET /health - Health check
@@ -219,7 +226,9 @@ Contributions are welcome. If you want to improve the app, add new travel featur
 
 ## Acknowledgments
 
-This project is based on [TripMate AI](https://github.com/entbappy/TripMate-AI-A-Multi-Agent-Travel-Planner-with-LangGraph) by Bappy Ahmed, released under the MIT License. It is built with the help of modern LLM tooling and travel APIs, and it is intended as a practical example of combining LangGraph agents with real-world applications.
+This project is based on [TripMate AI](https://github.com/entbappy/TripMate-AI-A-Multi-Agent-Travel-Planner-with-LangGraph) by Bappy Ahmed, released under the MIT License. The original is a fixed four-step pipeline (flight, hotel, itinerary, final answer) with a FastAPI web UI and PostgreSQL checkpointing.
+
+Added in this version: the supervisor with typed trip extraction and conditional routing, the weather, local-guide and budget agents, the MCP tool server and client, the guardrails, human-in-the-loop review with interrupt/resume, sanitised rendering, and the test suite.
 
 ## License
 
