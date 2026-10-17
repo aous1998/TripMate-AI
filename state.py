@@ -64,6 +64,10 @@ class TripDetails(BaseModel):
         default_factory=list,
         description="Activities or themes the user mentioned, e.g. museums, food, beaches.",
     )
+    hotel_preferences: str | None = Field(
+        default=None,
+        description="Accommodation preferences, e.g. 'budget', 'near the beach', 'boutique'. Null if none.",
+    )
 
     # Guardrails on the LLM's structured output: coerce bad values instead of
     # failing, so one odd field never breaks planning.
@@ -147,6 +151,9 @@ class TravelState(TypedDict):
     itinerary: str
     budget: dict | None        # set by budget_agent; totals are computed in code
     guardrail: dict | None     # {"blocked": bool, "reason": str}
+    review_enabled: bool       # pause for human approval after research
+    feedback: list[str]        # change requests from the human review
+    revisions: int             # how many times the user asked for changes
     final_answer: str          # the answer after output guardrails
     guardrail_notes: list[str]
     llm_calls: int

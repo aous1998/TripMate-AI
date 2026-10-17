@@ -29,6 +29,7 @@ A responder agent then writes the final answer.
 - 🧭 Supervisor agent that extracts typed trip details and routes to only the agents a request needs
 - 🧠 Multi-agent orchestration with LangGraph
 - 🔌 All tools served by an MCP server; agents call them through an MCP client over stdio
+- 🙋 Human-in-the-loop: the graph pauses after flight and hotel research so the user can approve or request changes, then resumes from the PostgreSQL checkpoint
 - 🛡️ Guardrails on input (prompt injection, off-topic, card numbers), on tool data and on output (secret redaction, code-computed budget check)
 - 📝 Structured travel itinerary generation
 - 🌐 FastAPI backend with a simple web interface
@@ -63,7 +64,7 @@ A responder agent then writes the final answer.
 ├── agents/               # Supervisor, six specialists, responder
 ├── tools/                # API integrations + mcp_client.py (MCP client for the agents)
 ├── tests/                # Offline tests (fake LLM, no API keys needed)
-├── cli.py                # Run one request from the terminal
+├── cli.py                # Run one request from the terminal (with review prompts)
 ├── requirements.txt      # Python dependencies
 ├── static/               # Static frontend assets
 └── templates/            # HTML templates
@@ -92,6 +93,8 @@ AVIATIONSTACK_API_KEY=your_aviationstack_api_key
 TAVILY_API_KEY=your_tavily_api_key
 DEFAULT_ORIGIN_IATA=FRA
 ```
+
+Optional: `USE_MCP=false` runs the tools in-process instead of through the MCP server.
 
 ## Installation
 
@@ -122,7 +125,10 @@ http://127.0.0.1:8000/
 ## API Endpoints
 
 - GET /health - Health check
-- POST /api/travel - Submit a travel request
+- POST /api/travel - Submit a travel request (`message`, optional `thread_id`, `human_review`: default `true`)
+- POST /api/travel/review - Answer a paused review (`thread_id`, `approved`, optional `feedback`)
+
+`/api/travel` returns `"status": "needs_review"` with the flight and hotel research when the graph pauses for approval, or `"status": "done"` with the final `answer`.
 
 Example request:
 
@@ -136,6 +142,7 @@ curl -X POST http://127.0.0.1:8000/api/travel \
 
 ```text
 START -> input_guardrail -> supervisor -> one of six specialists -> supervisor -> ...
+                                       -> human_review (pause) -> supervisor -> ...
                                        -> responder -> output_guardrail -> END
 Blocked or off-topic requests: -> blocked_response -> END
 ```
@@ -147,6 +154,18 @@ Blocked or off-topic requests: -> blocked_response -> END
 5. When every planned agent has run, the **responder** writes the final answer from whatever was gathered, and the **output guardrail** checks it.
 
 If structured output fails, the supervisor falls back to running every agent, so the request still gets an answer.
+
+## Human-in-the-Loop Review
+
+When a request needs both research (flights or hotels) and work that builds on it (itinerary or budget), the supervisor inserts a `human_review` step after the research:
+
+1. `human_review` calls LangGraph's `interrupt()`. The graph state is saved by the PostgreSQL checkpointer and the API returns the flights and hotels with `"status": "needs_review"`.
+2. The web page shows them with **Approve** and **Request changes** buttons.
+3. `POST /api/travel/review` resumes the same thread with `Command(resume=...)`. Because the state lives in PostgreSQL, a paused plan survives a server restart.
+4. **Approve** continues to the itinerary and budget. **Request changes** (e.g. "cheaper hotels near the beach") sends the feedback back to the supervisor, which re-extracts the trip details (including `hotel_preferences`), re-runs the research and asks again.
+5. After three change requests the run continues without asking again. Feedback passes the same input guardrail as a new request.
+
+Untick "Let me review flights & hotels" on the page (or send `"human_review": false`) to run straight through.
 
 ## Guardrails
 
@@ -181,6 +200,12 @@ The tests use a fake LLM and fake tools, so they need no API keys or database:
 ```bash
 pip install -r requirements-dev.txt
 python -m pytest
+```
+
+`tests/test_mcp.py` starts the real MCP server over stdio. To also run the end-to-end tests against a real PostgreSQL database (FastAPI endpoints, checkpointer, and resuming a paused review after a "restart"), point `TEST_DATABASE_URL` at an empty database:
+
+```bash
+TEST_DATABASE_URL="postgresql://postgres:password@localhost:5432/travel_db?sslmode=disable" python -m pytest
 ```
 
 ## Contributing

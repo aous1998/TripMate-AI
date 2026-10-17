@@ -1,6 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.common import UNTRUSTED_DATA_RULE, as_data, describe_trip, mark_done
+from agents.common import UNTRUSTED_DATA_RULE, as_data, describe_feedback, describe_trip, mark_done
 from llm import get_llm
 from state import TravelState
 
@@ -14,6 +14,9 @@ User Query:
 
 Trip Details:
 {describe_trip(state.get('trip'))}
+
+User Change Requests (apply these):
+{describe_feedback(state)}
 
 Flight Results:
 {as_data('flights', state.get('flight_results'))}

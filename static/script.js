@@ -1,6 +1,11 @@
 let currentThreadId = localStorage.getItem("travel_thread_id") || null;
 let latestAnswerMarkdown = "";
 
+const AGENT_LABELS = {
+    human_review: "Your review",
+    local_guide_agent: "Local guide",
+};
+
 function setPrompt(text) {
     document.getElementById("userInput").value = text;
 }
@@ -19,6 +24,14 @@ function setLoading(isLoading) {
         btnText.classList.remove("hidden");
         btnLoader.classList.add("hidden");
     }
+
+    // The review buttons share the loading state.
+    for (const id of ["approveBtn", "changesBtn"]) {
+        const button = document.getElementById(id);
+        button.dataset.label = button.dataset.label || button.textContent.trim();
+        button.disabled = isLoading;
+        button.textContent = isLoading ? "Working..." : button.dataset.label;
+    }
 }
 
 function showError(message) {
@@ -36,31 +49,74 @@ function hideError() {
 }
 
 function formatAgentName(name) {
-    const label = name.replace(/_agent$/, "");
+    if (AGENT_LABELS[name]) {
+        return AGENT_LABELS[name];
+    }
+    const label = name.replace(/_agent$/, "").replace(/_/g, " ");
     return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function showResult(answer, threadId, agentsRun, guardrail) {
-    latestAnswerMarkdown = answer;
+function renderMarkdown(element, markdown) {
+    // Answers can quote web content, so rendered HTML is sanitised before display.
+    if (typeof marked !== "undefined" && typeof DOMPurify !== "undefined") {
+        element.innerHTML = DOMPurify.sanitize(marked.parse(markdown));
+    } else {
+        element.innerText = markdown;
+    }
+}
+
+function describeTrip(trip) {
+    if (!trip) {
+        return "";
+    }
+
+    const parts = [];
+
+    if (trip.origin && trip.destination) {
+        parts.push(`${trip.origin} → ${trip.destination}`);
+    } else if (trip.destination) {
+        parts.push(trip.destination);
+    }
+    if (trip.duration_days) {
+        parts.push(`${trip.duration_days} days`);
+    }
+    if (trip.budget) {
+        parts.push(`budget ${trip.budget} ${trip.currency || "EUR"}`);
+    }
+    if (trip.travelers > 1) {
+        parts.push(`${trip.travelers} travelers`);
+    }
+    if (trip.hotel_preferences) {
+        parts.push(`hotels: ${trip.hotel_preferences}`);
+    }
+
+    return parts.join(" · ");
+}
+
+function showResult(data) {
+    latestAnswerMarkdown = data.answer;
+
+    document.getElementById("reviewSection").classList.add("hidden");
 
     const resultSection = document.getElementById("resultSection");
     const resultBox = document.getElementById("resultBox");
     const threadInfo = document.getElementById("threadInfo");
     const agentsInfo = document.getElementById("agentsInfo");
 
-    if (typeof marked !== "undefined") {
-        resultBox.innerHTML = marked.parse(answer);
-    } else {
-        resultBox.innerText = answer;
-    }
+    renderMarkdown(resultBox, data.answer);
 
-    threadInfo.textContent = `Thread ID: ${threadId}`;
+    threadInfo.textContent = `Thread ID: ${data.thread_id}`;
 
-    if (guardrail && guardrail.blocked) {
-        agentsInfo.textContent = `Stopped by guardrail: ${guardrail.reason.replace(/_/g, " ")}`;
+    if (data.guardrail && data.guardrail.blocked) {
+        agentsInfo.textContent = `Stopped by guardrail: ${data.guardrail.reason.replace(/_/g, " ")}`;
     } else {
-        agentsInfo.textContent = agentsRun && agentsRun.length
-            ? `Agents used: Supervisor → ${agentsRun.map(formatAgentName).join(" → ")} → Responder`
+        const agentsRun = data.agents_run || [];
+        const revisions = data.revisions
+            ? ` (after ${data.revisions} change request${data.revisions === 1 ? "" : "s"})`
+            : "";
+
+        agentsInfo.textContent = agentsRun.length
+            ? `Agents used: Supervisor → ${agentsRun.map(formatAgentName).join(" → ")} → Responder${revisions}`
             : "Agents used: Supervisor → Responder";
     }
 
@@ -70,6 +126,60 @@ function showResult(answer, threadId, agentsRun, guardrail) {
         behavior: "smooth",
         block: "start"
     });
+}
+
+function showReview(data) {
+    const review = data.review;
+    const remaining = review.max_revisions - review.revision;
+
+    document.getElementById("resultSection").classList.add("hidden");
+
+    document.getElementById("reviewInfo").textContent =
+        `${describeTrip(review.trip)} — approve these results or ask for changes ` +
+        `(${remaining} change request${remaining === 1 ? "" : "s"} left).`;
+
+    // Raw tool output is shown as plain text, never as HTML.
+    const plain = text => (text || "Not researched for this request.").replace(/\*\*/g, "");
+    document.getElementById("reviewFlights").textContent = plain(review.flight_results);
+    document.getElementById("reviewHotels").textContent = plain(review.hotel_results);
+    document.getElementById("reviewFeedback").value = "";
+
+    const reviewSection = document.getElementById("reviewSection");
+    reviewSection.classList.remove("hidden");
+
+    reviewSection.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
+}
+
+function handleResponse(data) {
+    currentThreadId = data.thread_id;
+    localStorage.setItem("travel_thread_id", currentThreadId);
+
+    if (data.status === "needs_review") {
+        showReview(data);
+    } else {
+        showResult(data);
+    }
+}
+
+async function postJSON(url, body) {
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw new Error(data.error || "Something went wrong.");
+    }
+
+    return data;
 }
 
 async function sendMessage() {
@@ -86,27 +196,41 @@ async function sendMessage() {
     setLoading(true);
 
     try {
-        const response = await fetch("/api/travel", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                message: message,
-                thread_id: currentThreadId
-            })
+        const data = await postJSON("/api/travel", {
+            message: message,
+            thread_id: currentThreadId,
+            human_review: document.getElementById("reviewToggle").checked
         });
 
-        const data = await response.json();
+        handleResponse(data);
 
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || "Something went wrong.");
-        }
+    } catch (error) {
+        showError(error.message);
+    } finally {
+        setLoading(false);
+    }
+}
 
-        currentThreadId = data.thread_id;
-        localStorage.setItem("travel_thread_id", currentThreadId);
+async function submitReview(approved) {
+    hideError();
 
-        showResult(data.answer, data.thread_id, data.agents_run, data.guardrail);
+    const feedback = document.getElementById("reviewFeedback").value.trim();
+
+    if (!approved && !feedback) {
+        showError("Describe what you'd like to change, then click Request changes.");
+        return;
+    }
+
+    setLoading(true);
+
+    try {
+        const data = await postJSON("/api/travel/review", {
+            thread_id: currentThreadId,
+            approved: approved,
+            feedback: feedback
+        });
+
+        handleResponse(data);
 
     } catch (error) {
         showError(error.message);

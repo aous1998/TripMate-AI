@@ -48,8 +48,17 @@ def describe_trip(trip: dict | None) -> str:
         lines.append(f"- Travelers: {trip['travelers']}")
     if trip.get("interests"):
         lines.append(f"- Interests: {', '.join(trip['interests'])}")
+    if trip.get("hotel_preferences"):
+        lines.append(f"- Hotel preferences: {trip['hotel_preferences']}")
 
     return "\n".join(lines) or "No structured trip details were extracted."
+
+
+def describe_feedback(state: dict) -> str:
+    """The user's change requests from the human review, if any."""
+    if not state.get("feedback"):
+        return "None."
+    return "\n".join(f"- {change}" for change in state["feedback"])
 
 
 def mark_done(state: dict, agent_name: str) -> list[str]:

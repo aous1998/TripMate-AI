@@ -80,6 +80,50 @@
                 </button>
             </div>
 
+            <label class="review-toggle">
+                <input type="checkbox" id="reviewToggle" checked>
+                Let me review flights &amp; hotels before the itinerary is built
+            </label>
+
+        </section>
+
+        <section id="reviewSection" class="result-section review-section hidden">
+
+            <div class="result-header">
+                <div>
+                    <h2>Review before planning</h2>
+                    <p id="reviewInfo"></p>
+                </div>
+            </div>
+
+            <div class="review-grid">
+                <div class="review-block">
+                    <h3>✈️ Flights</h3>
+                    <pre id="reviewFlights"></pre>
+                </div>
+
+                <div class="review-block">
+                    <h3>🏨 Hotels</h3>
+                    <pre id="reviewHotels"></pre>
+                </div>
+            </div>
+
+            <textarea
+                id="reviewFeedback"
+                class="review-feedback"
+                placeholder="Want changes? e.g. 'cheaper hotels near the beach' or 'fly from Munich instead'"
+            ></textarea>
+
+            <div class="review-actions">
+                <button id="approveBtn" class="approve-btn" onclick="submitReview(true)">
+                    Approve &amp; build itinerary
+                </button>
+
+                <button id="changesBtn" class="changes-btn" onclick="submitReview(false)">
+                    Request changes
+                </button>
+            </div>
+
         </section>
 
         <section id="resultSection" class="result-section hidden">
@@ -114,11 +158,14 @@
     </main>
 
     <footer>
-        Built with FastAPI, LangGraph, Groq, PostgreSQL, Tavily, AviationStack, Open-Meteo and Frankfurter
+        Built with FastAPI, LangGraph, MCP, Groq, PostgreSQL, Tavily, AviationStack, Open-Meteo and Frankfurter
     </footer>
 
     <!-- Markdown Renderer -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- HTML Sanitizer for rendered answers -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 
     <!-- PDF Download Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>

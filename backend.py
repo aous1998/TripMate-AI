@@ -13,7 +13,9 @@ import psycopg
 from psycopg.rows import dict_row
 
 from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.types import Command
 
+from agents.guardrails import BLOCK_MESSAGES, check_input
 from llm import get_llm
 from tools import mcp_client
 from workflow import build_graph, new_request_state
@@ -59,28 +61,71 @@ mcp_client.start()
 
 
 # =========================
-# Function for FastAPI
+# Functions for FastAPI
 # =========================
 
-def run_travel_agent(user_input: str, thread_id: str | None = None):
+class ReviewError(ValueError):
+    """The review answer cannot be applied (nothing to review, or unsafe feedback)."""
+
+
+def run_travel_agent(user_input: str, thread_id: str | None = None, human_review: bool = True):
     if not thread_id:
         thread_id = f"user_{uuid.uuid4().hex}"
 
-    config = {
-        "configurable": {
-            "thread_id": thread_id
-        }
-    }
+    result = travel_graph.invoke(
+        new_request_state(user_input, review_enabled=human_review),
+        config=thread_config(thread_id),
+    )
+    return build_response(thread_id, result)
 
-    result = travel_graph.invoke(new_request_state(user_input), config=config)
+
+def resume_travel_agent(thread_id: str, approved: bool, feedback: str = ""):
+    """Answer a pending human review: approve the research, or request changes."""
+    config = thread_config(thread_id)
+
+    if not travel_graph.get_state(config).interrupts:
+        raise ReviewError("This plan is not waiting for a review. Please start a new request.")
+
+    feedback = (feedback or "").strip()
+    if not approved:
+        if not feedback:
+            raise ReviewError("Please describe what you would like to change.")
+        # The feedback goes to the LLM, so it passes the same input guardrail.
+        reason = check_input(feedback)
+        if reason:
+            raise ReviewError(BLOCK_MESSAGES[reason])
+
+    result = travel_graph.invoke(
+        Command(resume={"approved": approved, "feedback": feedback}),
+        config=config,
+    )
+    return build_response(thread_id, result)
+
+
+def thread_config(thread_id: str) -> dict:
+    return {"configurable": {"thread_id": thread_id}}
+
+
+def build_response(thread_id: str, result: dict) -> dict:
+    interrupts = result.get("__interrupt__")
+
+    if interrupts:
+        return {
+            "status": "needs_review",
+            "thread_id": thread_id,
+            "review": interrupts[0].value,
+            "agents_run": result.get("completed", []),
+        }
 
     final_answer = result.get("final_answer") or result["messages"][-1].content
 
     return {
+        "status": "done",
         "thread_id": thread_id,
         "answer": final_answer,
         "trip": result.get("trip"),
         "agents_run": result.get("completed", []),
+        "revisions": result.get("revisions", 0),
         "flight_results": result.get("flight_results", ""),
         "hotel_results": result.get("hotel_results", ""),
         "weather": result.get("weather", ""),

@@ -1,20 +1,22 @@
-from tools.tavily_tool import tavily_search
-from tools.flight_tool import search_flights
-from backend import run_travel_agent
+"""Run one travel request from the terminal, including the human review step."""
 
-# res = tavily_search("Best hotels in India")
-# print(res)
+from backend import ReviewError, resume_travel_agent, run_travel_agent
 
-
-# res = search_flights("Plan a 7 days Nepal trip from Bangladesh")
-# print(res)
+THREAD_ID = "cli_user"
 
 user_input = input("Enter travel request: ")
+response = run_travel_agent(user_input=user_input, thread_id=THREAD_ID)
 
-response = run_travel_agent(
-    user_input=user_input,
-    thread_id="test_user"
-)
+while response["status"] == "needs_review":
+    review = response["review"]
+    print("\nFLIGHTS:\n", review["flight_results"] or "Not researched.")
+    print("\nHOTELS:\n", review["hotel_results"] or "Not researched.")
+
+    feedback = input("\nPress Enter to approve, or type the changes you want: ").strip()
+    try:
+        response = resume_travel_agent(THREAD_ID, approved=not feedback, feedback=feedback)
+    except ReviewError as e:
+        print(e)
 
 print("\nFINAL RESPONSE:\n")
 print(response["answer"])

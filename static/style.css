@@ -235,6 +235,99 @@ textarea::placeholder {
     padding: 28px;
 }
 
+.review-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 18px;
+    color: #cbd5e1;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.review-toggle input {
+    width: 18px;
+    height: 18px;
+    accent-color: #3b82f6;
+}
+
+.review-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.review-block {
+    background: rgba(2, 6, 23, 0.64);
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 18px;
+    padding: 18px;
+    min-width: 0;
+}
+
+.review-block h3 {
+    color: #ffffff;
+    margin-bottom: 12px;
+}
+
+.review-block pre {
+    color: #cbd5e1;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.review-feedback {
+    min-height: 90px;
+}
+
+.review-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.approve-btn,
+.changes-btn {
+    border: none;
+    border-radius: 14px;
+    padding: 14px 20px;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+.approve-btn {
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    color: #ffffff;
+    box-shadow: 0 12px 30px rgba(34, 197, 94, 0.25);
+}
+
+.changes-btn {
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: rgba(15, 23, 42, 0.9);
+    color: #ffffff;
+}
+
+.approve-btn:hover,
+.changes-btn:hover {
+    transform: translateY(-1px);
+}
+
+.approve-btn:disabled,
+.changes-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .result-actions {
     display: flex;
     gap: 10px;
@@ -424,6 +517,7 @@ footer {
 
     .planner-card,
     .hero-section,
+    .review-section,
     footer,
     .result-actions,
     #threadInfo,
@@ -451,6 +545,10 @@ footer {
     .result-section {
         padding: 20px;
         border-radius: 22px;
+    }
+
+    .review-grid {
+        grid-template-columns: 1fr;
     }
 
     .card-header,

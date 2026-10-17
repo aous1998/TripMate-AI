@@ -9,6 +9,8 @@ def hotel_agent(state: TravelState):
 
     if trip.get("destination"):
         query = f"Best hotels in {trip['destination']}"
+        if trip.get("hotel_preferences"):
+            query += f" ({trip['hotel_preferences']})"
     else:
         query = f"Best hotels for {state['user_query']}"
 

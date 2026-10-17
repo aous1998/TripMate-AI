@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from backend import run_travel_agent
+from backend import ReviewError, resume_travel_agent, run_travel_agent
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -35,6 +35,13 @@ templates = Jinja2Templates(
 class TravelRequest(BaseModel):
     message: str
     thread_id: str | None = None
+    human_review: bool = True
+
+
+class ReviewRequest(BaseModel):
+    thread_id: str
+    approved: bool
+    feedback: str | None = None
 
 
 
@@ -47,8 +54,10 @@ async def home(request: Request):
     )
 
 
+# Sync endpoints: FastAPI runs them in a worker thread, so a long graph run
+# does not block the server's event loop.
 @app.post("/api/travel")
-async def travel_planner(request_data: TravelRequest):
+def travel_planner(request_data: TravelRequest):
     try:
         user_message = request_data.message.strip()
 
@@ -63,39 +72,45 @@ async def travel_planner(request_data: TravelRequest):
 
         result = run_travel_agent(
             user_input=user_message,
-            thread_id=request_data.thread_id
+            thread_id=request_data.thread_id,
+            human_review=request_data.human_review,
         )
 
-        return JSONResponse(
-            content={
-                "success": True,
-                "thread_id": result["thread_id"],
-                "answer": result["answer"],
-                "trip": result["trip"],
-                "agents_run": result["agents_run"],
-                "guardrail": result["guardrail"],
-                "guardrail_notes": result["guardrail_notes"],
-                "flight_results": result["flight_results"],
-                "hotel_results": result["hotel_results"],
-                "weather": result["weather"],
-                "local_tips": result["local_tips"],
-                "itinerary": result["itinerary"],
-                "budget": result["budget"],
-                "llm_calls": result["llm_calls"],
-            }
-        )
+        return JSONResponse(content={"success": True, **result})
 
     except Exception as e:
-        print("ERROR:", e)
-        traceback.print_exc()
+        return error_response(e)
 
-        return JSONResponse(
-            status_code=500,
-            content={
-                "success": False,
-                "error": str(e)
-            }
+
+@app.post("/api/travel/review")
+def review_plan(request_data: ReviewRequest):
+    try:
+        result = resume_travel_agent(
+            thread_id=request_data.thread_id,
+            approved=request_data.approved,
+            feedback=request_data.feedback or "",
         )
+
+        return JSONResponse(content={"success": True, **result})
+
+    except ReviewError as e:
+        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
+
+    except Exception as e:
+        return error_response(e)
+
+
+def error_response(e: Exception) -> JSONResponse:
+    print("ERROR:", e)
+    traceback.print_exc()
+
+    return JSONResponse(
+        status_code=500,
+        content={
+            "success": False,
+            "error": str(e)
+        }
+    )
 
 
 

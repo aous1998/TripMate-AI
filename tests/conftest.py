@@ -32,6 +32,7 @@ class FakeLLM:
         self.answers = answers or {}  # call number -> text, e.g. {1: "..."}
         self.prompts = []
         self.structured_calls = 0
+        self.structured_prompts = []
 
     def with_structured_output(self, schema):
         llm = self
@@ -39,6 +40,7 @@ class FakeLLM:
         class StructuredRunner:
             def invoke(self, messages):
                 llm.structured_calls += 1
+                llm.structured_prompts.append(messages[-1].content)
                 if llm.fail_structured:
                     raise ValueError("model returned no tool call")
                 return llm.outputs[schema]

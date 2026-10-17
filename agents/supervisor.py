@@ -2,6 +2,7 @@
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
+from agents.review import with_review_step
 from llm import get_llm
 from state import AGENT_ORDER, SupervisorDecision, TravelState, TripDetails
 
@@ -21,7 +22,9 @@ If the request is not about travel, set is_travel_request to false and choose no
 Choose only the agents the request actually needs. A complete trip plan needs all of them;
 a question that is only about hotels needs only hotel_agent, and a weather question
 needs only weather_agent.
-If the user does not mention a currency, use EUR."""
+If the user does not mention a currency, use EUR.
+If the user has reviewed earlier results and asked for changes, apply them to the trip details
+(for example a new origin, a lower budget, or hotel preferences)."""
 
 
 def supervisor_agent(state: TravelState):
@@ -45,7 +48,7 @@ def plan_request(state: TravelState) -> dict:
     try:
         decision = get_llm().with_structured_output(SupervisorDecision).invoke([
             SystemMessage(content=SUPERVISOR_PROMPT),
-            HumanMessage(content=state["user_query"]),
+            HumanMessage(content=planning_request(state)),
         ])
         trip = decision.trip
         chosen = decision.agents
@@ -69,7 +72,7 @@ def plan_request(state: TravelState) -> dict:
             "messages": [AIMessage(content=f"Supervisor: not a travel request. {reasoning}")],
         }
 
-    plan = [agent for agent in AGENT_ORDER if agent in chosen]
+    plan = with_review_step([agent for agent in AGENT_ORDER if agent in chosen], state)
 
     return {
         "trip": trip.model_dump(),
@@ -79,6 +82,14 @@ def plan_request(state: TravelState) -> dict:
             AIMessage(content=f"Supervisor plan: {', '.join(plan) or 'answer directly'}. {reasoning}")
         ],
     }
+
+
+def planning_request(state: TravelState) -> str:
+    request = state["user_query"]
+    if state.get("feedback"):
+        changes = "\n".join(f"- {change}" for change in state["feedback"])
+        request += f"\n\nThe user reviewed the first results and asked for these changes:\n{changes}"
+    return request
 
 
 def pick_next_agent(plan: list[str], completed: list[str]) -> str:

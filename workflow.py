@@ -2,7 +2,8 @@
 
     START -> input_guardrail -> supervisor -> one of the six specialists -> supervisor -> ...
                                           \\-> responder -> output_guardrail -> END
-    Blocked or off-topic requests go to blocked_response -> END instead.
+    The supervisor also routes to human_review (an interrupt) between research
+    and the itinerary. Blocked or off-topic requests go to blocked_response -> END.
 """
 
 from langchain_core.messages import HumanMessage
@@ -20,6 +21,7 @@ from agents.hotel import hotel_agent
 from agents.itinerary import itinerary_agent
 from agents.local_guide import local_guide_agent
 from agents.responder import responder_agent
+from agents.review import human_review
 from agents.supervisor import route, supervisor_agent
 from agents.weather import weather_agent
 from state import AGENT_ORDER, TravelState
@@ -45,6 +47,8 @@ def build_graph() -> StateGraph:
     graph.add_node("supervisor", supervisor_agent)
     graph.add_node("responder", responder_agent)
     graph.add_node("output_guardrail", output_guardrail)
+    graph.add_node("human_review", human_review)
+    graph.add_edge("human_review", "supervisor")
 
     for name, agent in SPECIALISTS.items():
         graph.add_node(name, agent)
@@ -53,7 +57,9 @@ def build_graph() -> StateGraph:
 
     graph.add_edge(START, "input_guardrail")
     graph.add_conditional_edges("input_guardrail", route_after_input, ["supervisor", "blocked_response"])
-    graph.add_conditional_edges("supervisor", route, [*SPECIALISTS, "responder", "blocked_response"])
+    graph.add_conditional_edges(
+        "supervisor", route, [*SPECIALISTS, "human_review", "responder", "blocked_response"],
+    )
     graph.add_edge("responder", "output_guardrail")
     graph.add_edge("output_guardrail", END)
     graph.add_edge("blocked_response", END)
@@ -61,7 +67,7 @@ def build_graph() -> StateGraph:
     return graph
 
 
-def new_request_state(user_input: str) -> dict:
+def new_request_state(user_input: str, review_enabled: bool = False) -> dict:
     """Input for one request. Threads are reused across requests, so every
     per-request field is reset here; messages accumulate as chat history."""
     return {
@@ -80,5 +86,8 @@ def new_request_state(user_input: str) -> dict:
         "guardrail": None,
         "final_answer": "",
         "guardrail_notes": [],
+        "review_enabled": review_enabled,
+        "feedback": [],
+        "revisions": 0,
         "llm_calls": 0,
     }
