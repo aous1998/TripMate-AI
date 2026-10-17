@@ -125,6 +125,7 @@ Hotel Results:
 {state['hotel_results']}
 
 Make the itinerary practical, budget-aware, and easy to follow.
+Show all costs in euros (EUR) unless the user asks for a different currency.
 """
 
     response = llm.invoke([
@@ -171,6 +172,7 @@ Format the final answer beautifully using these sections:
 
 Important:
 - Be clear and practical.
+- Show all costs and the estimated budget in euros (EUR) unless the user asks for a different currency.
 - Mention that live flight API may not provide ticket prices if pricing is unavailable.
 - Keep the response useful for real travel planning.
 """

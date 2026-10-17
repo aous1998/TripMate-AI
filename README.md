@@ -69,7 +69,7 @@ DATABASE_URL=postgresql://user:password@localhost:5432/travel_db
 GROQ_API_KEY=your_groq_api_key
 AVIATIONSTACK_API_KEY=your_aviationstack_api_key
 TAVILY_API_KEY=your_tavily_api_key
-DEFAULT_ORIGIN_IATA=DAC
+DEFAULT_ORIGIN_IATA=FRA
 ```
 
 ## Installation
