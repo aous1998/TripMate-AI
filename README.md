@@ -28,6 +28,7 @@ A responder agent then writes the final answer.
 - 💶 Itemised budget in EUR, with totals computed in code and foreign budgets converted at ECB rates
 - 🧭 Supervisor agent that extracts typed trip details and routes to only the agents a request needs
 - 🧠 Multi-agent orchestration with LangGraph
+- 🔌 All tools served by an MCP server; agents call them through an MCP client over stdio
 - 📝 Structured travel itinerary generation
 - 🌐 FastAPI backend with a simple web interface
 - 💾 Conversation state persistence using PostgreSQL
@@ -40,6 +41,7 @@ A responder agent then writes the final answer.
 - Jinja2 + HTML/CSS/JavaScript frontend
 - LangGraph
 - LangChain
+- Model Context Protocol (official `mcp` Python SDK)
 - Groq LLMs
 - PostgreSQL
 - Tavily API
@@ -56,8 +58,9 @@ A responder agent then writes the final answer.
 ├── workflow.py           # LangGraph graph: supervisor, specialists, responder
 ├── state.py              # Typed graph state and supervisor schemas
 ├── llm.py                # Shared Groq chat model
+├── mcp_server.py         # MCP server exposing the travel tools
 ├── agents/               # Supervisor, six specialists, responder
-├── tools/                # Flight, web search, weather and currency integrations
+├── tools/                # API integrations + mcp_client.py (MCP client for the agents)
 ├── tests/                # Offline tests (fake LLM, no API keys needed)
 ├── cli.py                # Run one request from the terminal
 ├── requirements.txt      # Python dependencies
@@ -141,6 +144,22 @@ START -> supervisor -> one of six specialists -> supervisor -> ... -> responder 
 5. When every planned agent has run, the **responder** writes the final answer from whatever was gathered.
 
 If structured output fails, the supervisor falls back to running every agent, so the request still gets an answer.
+
+## MCP Tool Server
+
+The agents never call an API directly. Every tool lives in `mcp_server.py`, an MCP server built with the official Python SDK:
+
+| Tool | Purpose |
+| --- | --- |
+| `search_flights` | Live flights for a route (AviationStack) |
+| `web_search` | Web results with snippets (Tavily) |
+| `weather_forecast` | Daily forecast for a city or country (Open-Meteo) |
+| `convert_currency` | ECB exchange rates (Frankfurter) |
+| `lookup_airport` | Main airport code for a city or country |
+
+`tools/mcp_client.py` starts the server once as a subprocess over stdio and keeps one MCP session open in a background thread, so the synchronous LangGraph agents call tools with a plain function call (about 3 ms of overhead per call once connected). Tool errors come back as MCP error results with their real reason, and the agent turns them into a note instead of failing the request. If the server cannot start, tools run in-process with a warning; set `USE_MCP=false` to do that deliberately.
+
+Any other MCP client can use the same server, e.g. by configuring `python mcp_server.py` as a stdio server.
 
 ## Running Tests
 

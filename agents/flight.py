@@ -1,8 +1,7 @@
 from langchain_core.messages import AIMessage
 
-from agents.common import mark_done
+from agents.common import mark_done, run_tool
 from state import TravelState
-from tools.flight_tool import search_flights
 
 
 def flight_agent(state: TravelState):
@@ -15,7 +14,7 @@ def flight_agent(state: TravelState):
         query = state["user_query"]
 
     return {
-        "flight_results": search_flights(query, limit=5),
+        "flight_results": run_tool("search_flights", query=query, limit=5),
         "completed": mark_done(state, "flight_agent"),
         "messages": [AIMessage(content="Flight results fetched.")],
     }

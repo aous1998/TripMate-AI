@@ -36,13 +36,15 @@ def test_budget_converts_other_currencies_to_eur(fake_tools):
     amount, note = user_budget_in_eur({"budget": 1000, "currency": "usd"})
 
     assert amount == 920.0
-    assert fake_tools["currency"] == [(1000, "USD", "EUR")]
+    assert fake_tools["convert_currency"] == [
+        {"amount": 1000, "from_currency": "USD", "to_currency": "EUR"}
+    ]
     assert "1000 USD is about 920 EUR" in note
 
 
 def test_budget_without_amount_skips_conversion(fake_tools):
     assert user_budget_in_eur({"currency": "USD"}) == (None, "")
-    assert fake_tools["currency"] == []
+    assert fake_tools["convert_currency"] == []
 
 
 def test_format_budget_flags_over_budget():
@@ -63,8 +65,20 @@ def test_format_budget_flags_over_budget():
 def test_weather_agent_without_destination_skips_tool(fake_tools):
     result = weather_agent({"trip": {}, "completed": []})
 
-    assert fake_tools["weather"] == []
+    assert fake_tools["weather_forecast"] == []
     assert result["weather"].startswith("Weather unavailable")
+
+
+def test_failed_tool_becomes_a_note_not_a_crash(monkeypatch):
+    def broken_call_tool(name, **arguments):
+        raise RuntimeError("Tavily key invalid")
+
+    monkeypatch.setattr("tools.mcp_client.call_tool", broken_call_tool)
+
+    result = weather_agent({"trip": {"destination": "Oslo"}, "completed": []})
+
+    assert result["weather"] == "weather_forecast unavailable: Tavily key invalid"
+    assert result["completed"] == ["weather_agent"]
 
 
 def test_weather_tool_formats_open_meteo_forecast(monkeypatch):

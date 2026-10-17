@@ -1,9 +1,8 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.common import mark_done
+from agents.common import mark_done, run_tool
 from llm import get_llm
 from state import TravelState
-from tools.tavily_tool import tavily_search
 
 
 def local_guide_agent(state: TravelState):
@@ -21,7 +20,7 @@ def local_guide_agent(state: TravelState):
     if origin:
         query += f" for travelers from {origin}"
 
-    search_results = tavily_search(query)
+    search_results = run_tool("web_search", query=query)
 
     prompt = f"""
 Write short, practical local tips for a trip to {destination}{f' from {origin}' if origin else ''}.

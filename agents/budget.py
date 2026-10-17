@@ -3,7 +3,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from agents.common import describe_trip, mark_done
 from llm import get_llm
 from state import BudgetEstimate, TravelState
-from tools.currency_tool import convert_currency
+from tools import mcp_client
 
 
 def budget_agent(state: TravelState):
@@ -70,7 +70,9 @@ def user_budget_in_eur(trip: dict) -> tuple[float | None, str]:
         return float(amount), ""
 
     try:
-        converted = convert_currency(amount, currency, "EUR")
+        converted = float(mcp_client.call_tool(
+            "convert_currency", amount=amount, from_currency=currency, to_currency="EUR",
+        ))
         return converted, f"{amount:g} {currency} is about {converted:.0f} EUR at today's ECB rate."
     except Exception as e:
         print("Currency conversion failed:", e)

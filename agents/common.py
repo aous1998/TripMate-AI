@@ -1,5 +1,17 @@
 """Helpers shared by the agents."""
 
+from tools import mcp_client
+
+
+def run_tool(name: str, **arguments) -> str:
+    """Call a tool on the MCP server. On failure, return the error as text so
+    the request still gets an answer from the other agents."""
+    try:
+        return mcp_client.call_tool(name, **arguments)
+    except Exception as e:
+        print(f"Tool {name} failed:", e)
+        return f"{name} unavailable: {e}"
+
 
 def describe_trip(trip: dict | None) -> str:
     """Turn the supervisor's extracted trip details into prompt-ready lines."""

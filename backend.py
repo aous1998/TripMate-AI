@@ -15,6 +15,7 @@ from psycopg.rows import dict_row
 from langgraph.checkpoint.postgres import PostgresSaver
 
 from llm import get_llm
+from tools import mcp_client
 from workflow import build_graph, new_request_state
 
 
@@ -52,6 +53,9 @@ checkpointer = PostgresSaver(_conn)
 checkpointer.setup()
 
 travel_graph = build_graph().compile(checkpointer=checkpointer)
+
+# Start the MCP tool server now, so the first request is not slowed down.
+mcp_client.start()
 
 
 # =========================

@@ -47,20 +47,25 @@ class FakeLLM:
 
 @pytest.fixture
 def fake_tools(monkeypatch):
-    """Replace every external API and record the arguments each one receives."""
-    calls = {"flights": [], "hotels": [], "weather": [], "guide": [], "currency": []}
+    """Replace the MCP tool calls (every agent's only way to reach an API)
+    and record the arguments each tool receives."""
+    calls = {"search_flights": [], "hotels": [], "guide": [], "weather_forecast": [], "convert_currency": []}
 
-    def recorder(name, result):
-        def fake(*args, **kwargs):
-            calls[name].append(args[0] if len(args) == 1 else args)
-            return result
-        return fake
+    def fake_call_tool(name, **arguments):
+        if name == "web_search":
+            # Hotels and local tips both use web search; tell them apart by query.
+            kind = "hotels" if arguments["query"].startswith("Best hotels") else "guide"
+            calls[kind].append(arguments["query"])
+            return "FAKE HOTELS" if kind == "hotels" else "FAKE GUIDE SEARCH"
 
-    monkeypatch.setattr("agents.flight.search_flights", recorder("flights", "FAKE FLIGHTS"))
-    monkeypatch.setattr("agents.hotel.tavily_search", recorder("hotels", "FAKE HOTELS"))
-    monkeypatch.setattr("agents.weather.get_weather_forecast", recorder("weather", "FAKE WEATHER"))
-    monkeypatch.setattr("agents.local_guide.tavily_search", recorder("guide", "FAKE GUIDE SEARCH"))
-    monkeypatch.setattr("agents.budget.convert_currency", recorder("currency", 920.0))
+        calls[name].append(arguments)
+        return {
+            "search_flights": "FAKE FLIGHTS",
+            "weather_forecast": "FAKE WEATHER",
+            "convert_currency": "920.0",
+        }[name]
+
+    monkeypatch.setattr("tools.mcp_client.call_tool", fake_call_tool)
     return calls
 
 

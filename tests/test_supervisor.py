@@ -49,9 +49,9 @@ def test_agents_use_supervisor_trip_details(fake_tools):
 
     run(llm, "I want to go somewhere sunny, maybe Lisbon, leaving Hamburg")
 
-    assert fake_tools["flights"] == ["from Hamburg to Lisbon"]
+    assert fake_tools["search_flights"] == [{"query": "from Hamburg to Lisbon", "limit": 5}]
     assert fake_tools["hotels"] == ["Best hotels in Lisbon"]
-    assert fake_tools["weather"] == ["Lisbon"]
+    assert fake_tools["weather_forecast"] == [{"location": "Lisbon"}]
 
 
 def test_hotel_question_skips_other_agents(fake_tools):
@@ -60,8 +60,8 @@ def test_hotel_question_skips_other_agents(fake_tools):
     result = run(llm, "Which hotels are good in Rome?")
 
     assert result["completed"] == ["hotel_agent"]
-    assert fake_tools["flights"] == []
-    assert fake_tools["weather"] == []
+    assert fake_tools["search_flights"] == []
+    assert fake_tools["weather_forecast"] == []
     assert result["itinerary"] == ""
     assert result["budget"] is None
 
@@ -93,7 +93,7 @@ def test_failed_planning_falls_back_to_every_agent(fake_tools):
     result = run(llm, query)
 
     assert result["completed"] == AGENT_ORDER
-    assert fake_tools["flights"] == [query]  # no extracted route, so raw query
+    assert fake_tools["search_flights"] == [{"query": query, "limit": 5}]  # no extracted route
     assert result["budget"] == {"error": "A structured budget estimate was not available."}
 
 
