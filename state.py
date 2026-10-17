@@ -1,10 +1,11 @@
 """Shared graph state and the typed schemas the supervisor fills in."""
 
 import operator
+import re
 from typing import Annotated, Literal, TypedDict
 
 from langchain_core.messages import AnyMessage
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # Specialist agents the supervisor can route to. AGENT_ORDER is the order
@@ -25,6 +26,13 @@ AGENT_ORDER: list[str] = [
     "itinerary_agent",
     "budget_agent",
 ]
+
+
+def _number(value) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 class TripDetails(BaseModel):
@@ -57,8 +65,42 @@ class TripDetails(BaseModel):
         description="Activities or themes the user mentioned, e.g. museums, food, beaches.",
     )
 
+    # Guardrails on the LLM's structured output: coerce bad values instead of
+    # failing, so one odd field never breaks planning.
+    @field_validator("currency", mode="before")
+    @classmethod
+    def normalise_currency(cls, value):
+        code = str(value or "EUR").strip().upper()
+        return code if re.fullmatch(r"[A-Z]{3}", code) else "EUR"
+
+    @field_validator("duration_days", mode="before")
+    @classmethod
+    def clamp_duration(cls, value):
+        days = _number(value)
+        if days is None or days < 1:
+            return None
+        return min(int(days), 60)
+
+    @field_validator("budget", mode="before")
+    @classmethod
+    def positive_budget(cls, value):
+        amount = _number(value)
+        if amount is None or amount <= 0:
+            return None
+        return amount
+
+    @field_validator("travelers", mode="before")
+    @classmethod
+    def clamp_travelers(cls, value):
+        return min(max(int(_number(value) or 1), 1), 20)
+
 
 class SupervisorDecision(BaseModel):
+    is_travel_request: bool = Field(
+        default=True,
+        description="True if the request is about planning or researching travel; "
+                    "false for anything unrelated (coding, homework, general chat).",
+    )
     trip: TripDetails
     agents: list[AgentName] = Field(
         description="The specialist agents needed to answer this request.",
@@ -75,6 +117,11 @@ class BudgetLine(BaseModel):
     amount_eur: float = Field(
         description="Estimated cost in EUR for the whole trip and all travelers.",
     )
+
+    @field_validator("amount_eur", mode="before")
+    @classmethod
+    def non_negative(cls, value):
+        return max(_number(value) or 0.0, 0.0)
     note: str = Field(
         default="",
         description="Short basis for the estimate, e.g. '6 nights at about 120 EUR'.",
@@ -99,4 +146,7 @@ class TravelState(TypedDict):
     local_tips: str
     itinerary: str
     budget: dict | None        # set by budget_agent; totals are computed in code
+    guardrail: dict | None     # {"blocked": bool, "reason": str}
+    final_answer: str          # the answer after output guardrails
+    guardrail_notes: list[str]
     llm_calls: int

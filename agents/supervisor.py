@@ -17,6 +17,7 @@ Agents:
 - itinerary_agent: a practical day-by-day travel plan.
 - budget_agent: an itemised cost estimate in EUR, checked against the user's budget.
 
+If the request is not about travel, set is_travel_request to false and choose no agents.
 Choose only the agents the request actually needs. A complete trip plan needs all of them;
 a question that is only about hotels needs only hotel_agent, and a weather question
 needs only weather_agent.
@@ -32,7 +33,11 @@ def supervisor_agent(state: TravelState):
         update = plan_request(state)
         plan = update["plan"]
 
-    update["next_agent"] = pick_next_agent(plan, state.get("completed", []))
+    guardrail = update.get("guardrail") or state.get("guardrail") or {}
+    if guardrail.get("blocked"):
+        update["next_agent"] = "blocked_response"
+    else:
+        update["next_agent"] = pick_next_agent(plan, state.get("completed", []))
     return update
 
 
@@ -45,6 +50,7 @@ def plan_request(state: TravelState) -> dict:
         trip = decision.trip
         chosen = decision.agents
         reasoning = decision.reasoning
+        on_topic = decision.is_travel_request
     except Exception as e:
         # Some models handle structured output poorly; running every agent
         # is slower but still answers the request.
@@ -52,6 +58,16 @@ def plan_request(state: TravelState) -> dict:
         trip = TripDetails()
         chosen = list(AGENT_ORDER)
         reasoning = "Planning failed, so every agent runs."
+        on_topic = True
+
+    if not on_topic:
+        return {
+            "trip": trip.model_dump(),
+            "plan": [],
+            "guardrail": {"blocked": True, "reason": "off_topic"},
+            "llm_calls": state.get("llm_calls", 0) + 1,
+            "messages": [AIMessage(content=f"Supervisor: not a travel request. {reasoning}")],
+        }
 
     plan = [agent for agent in AGENT_ORDER if agent in chosen]
 

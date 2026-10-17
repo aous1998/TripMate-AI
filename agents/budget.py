@@ -1,6 +1,6 @@
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from agents.common import describe_trip, mark_done
+from agents.common import UNTRUSTED_DATA_RULE, as_data, describe_trip, mark_done
 from llm import get_llm
 from state import BudgetEstimate, TravelState
 from tools import mcp_client
@@ -17,13 +17,13 @@ Trip Details:
 {describe_trip(trip)}
 
 Flights:
-{state.get('flight_results') or 'Not researched.'}
+{as_data('flights', state.get('flight_results'), empty='Not researched.')}
 
 Hotels:
-{state.get('hotel_results') or 'Not researched.'}
+{as_data('hotels', state.get('hotel_results'), empty='Not researched.')}
 
 Itinerary:
-{state.get('itinerary') or 'Not planned.'}
+{as_data('itinerary', state.get('itinerary'), empty='Not planned.')}
 
 Give one line per category (Flights, Accommodation, Food, Local transport, Activities,
 and anything else significant). Use realistic current prices for the destination.
@@ -31,7 +31,7 @@ and anything else significant). Use realistic current prices for the destination
 
     try:
         estimate = get_llm().with_structured_output(BudgetEstimate).invoke([
-            SystemMessage(content="You are a careful travel budget analyst."),
+            SystemMessage(content=f"You are a careful travel budget analyst. {UNTRUSTED_DATA_RULE}"),
             HumanMessage(content=prompt),
         ])
         # The model itemises; the total is computed here so it always adds up.

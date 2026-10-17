@@ -1,7 +1,8 @@
 """Builds the TripMate graph: a supervisor that routes to specialist agents.
 
-    START -> supervisor -> one of the six specialists -> supervisor -> ...
-                       \\-> responder -> END   once every planned agent has run
+    START -> input_guardrail -> supervisor -> one of the six specialists -> supervisor -> ...
+                                          \\-> responder -> output_guardrail -> END
+    Blocked or off-topic requests go to blocked_response -> END instead.
 """
 
 from langchain_core.messages import HumanMessage
@@ -9,6 +10,12 @@ from langgraph.graph import END, START, StateGraph
 
 from agents.budget import budget_agent
 from agents.flight import flight_agent
+from agents.guardrails import (
+    blocked_response,
+    input_guardrail,
+    output_guardrail,
+    route_after_input,
+)
 from agents.hotel import hotel_agent
 from agents.itinerary import itinerary_agent
 from agents.local_guide import local_guide_agent
@@ -33,17 +40,23 @@ assert list(SPECIALISTS) == AGENT_ORDER, "SPECIALISTS must match state.AGENT_ORD
 def build_graph() -> StateGraph:
     graph = StateGraph(TravelState)
 
+    graph.add_node("input_guardrail", input_guardrail)
+    graph.add_node("blocked_response", blocked_response)
     graph.add_node("supervisor", supervisor_agent)
     graph.add_node("responder", responder_agent)
+    graph.add_node("output_guardrail", output_guardrail)
 
     for name, agent in SPECIALISTS.items():
         graph.add_node(name, agent)
         # Every specialist reports back to the supervisor, which picks the next step.
         graph.add_edge(name, "supervisor")
 
-    graph.add_edge(START, "supervisor")
-    graph.add_conditional_edges("supervisor", route, [*SPECIALISTS, "responder"])
-    graph.add_edge("responder", END)
+    graph.add_edge(START, "input_guardrail")
+    graph.add_conditional_edges("input_guardrail", route_after_input, ["supervisor", "blocked_response"])
+    graph.add_conditional_edges("supervisor", route, [*SPECIALISTS, "responder", "blocked_response"])
+    graph.add_edge("responder", "output_guardrail")
+    graph.add_edge("output_guardrail", END)
+    graph.add_edge("blocked_response", END)
 
     return graph
 
@@ -64,5 +77,8 @@ def new_request_state(user_input: str) -> dict:
         "local_tips": "",
         "itinerary": "",
         "budget": None,
+        "guardrail": None,
+        "final_answer": "",
+        "guardrail_notes": [],
         "llm_calls": 0,
     }

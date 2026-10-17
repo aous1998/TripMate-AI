@@ -40,7 +40,7 @@ function formatAgentName(name) {
     return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function showResult(answer, threadId, agentsRun) {
+function showResult(answer, threadId, agentsRun, guardrail) {
     latestAnswerMarkdown = answer;
 
     const resultSection = document.getElementById("resultSection");
@@ -56,9 +56,13 @@ function showResult(answer, threadId, agentsRun) {
 
     threadInfo.textContent = `Thread ID: ${threadId}`;
 
-    agentsInfo.textContent = agentsRun && agentsRun.length
-        ? `Agents used: Supervisor → ${agentsRun.map(formatAgentName).join(" → ")} → Responder`
-        : "Agents used: Supervisor → Responder";
+    if (guardrail && guardrail.blocked) {
+        agentsInfo.textContent = `Stopped by guardrail: ${guardrail.reason.replace(/_/g, " ")}`;
+    } else {
+        agentsInfo.textContent = agentsRun && agentsRun.length
+            ? `Agents used: Supervisor → ${agentsRun.map(formatAgentName).join(" → ")} → Responder`
+            : "Agents used: Supervisor → Responder";
+    }
 
     resultSection.classList.remove("hidden");
 
@@ -102,7 +106,7 @@ async function sendMessage() {
         currentThreadId = data.thread_id;
         localStorage.setItem("travel_thread_id", currentThreadId);
 
-        showResult(data.answer, data.thread_id, data.agents_run);
+        showResult(data.answer, data.thread_id, data.agents_run, data.guardrail);
 
     } catch (error) {
         showError(error.message);

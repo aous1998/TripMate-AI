@@ -74,7 +74,7 @@ def run_travel_agent(user_input: str, thread_id: str | None = None):
 
     result = travel_graph.invoke(new_request_state(user_input), config=config)
 
-    final_answer = result["messages"][-1].content
+    final_answer = result.get("final_answer") or result["messages"][-1].content
 
     return {
         "thread_id": thread_id,
@@ -87,5 +87,7 @@ def run_travel_agent(user_input: str, thread_id: str | None = None):
         "local_tips": result.get("local_tips", ""),
         "itinerary": result.get("itinerary", ""),
         "budget": result.get("budget"),
+        "guardrail": result.get("guardrail"),
+        "guardrail_notes": result.get("guardrail_notes", []),
         "llm_calls": result.get("llm_calls", 0),
     }

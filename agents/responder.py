@@ -1,7 +1,7 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.budget import format_budget
-from agents.common import describe_trip
+from agents.common import UNTRUSTED_DATA_RULE, as_data, describe_trip
 from llm import get_llm
 from state import TravelState
 
@@ -18,19 +18,19 @@ Trip Details:
 {describe_trip(state.get('trip'))}
 
 Flights:
-{state.get('flight_results') or 'Not requested.'}
+{as_data('flights', state.get('flight_results'))}
 
 Hotels:
-{state.get('hotel_results') or 'Not requested.'}
+{as_data('hotels', state.get('hotel_results'))}
 
 Weather:
-{state.get('weather') or 'Not requested.'}
+{as_data('weather', state.get('weather'))}
 
 Local Tips:
-{state.get('local_tips') or 'Not requested.'}
+{as_data('local_tips', state.get('local_tips'))}
 
 Itinerary:
-{state.get('itinerary') or 'Not requested.'}
+{as_data('itinerary', state.get('itinerary'))}
 
 Budget Estimate:
 {format_budget(state.get('budget'))}
@@ -56,7 +56,7 @@ Important:
 """
 
     response = get_llm().invoke([
-        SystemMessage(content="You are a professional AI travel booking assistant."),
+        SystemMessage(content=f"You are a professional AI travel booking assistant. {UNTRUSTED_DATA_RULE}"),
         HumanMessage(content=final_prompt)
     ])
 

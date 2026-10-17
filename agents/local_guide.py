@@ -1,6 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.common import mark_done, run_tool
+from agents.common import UNTRUSTED_DATA_RULE, as_data, mark_done, run_tool
 from llm import get_llm
 from state import TravelState
 
@@ -26,7 +26,7 @@ def local_guide_agent(state: TravelState):
 Write short, practical local tips for a trip to {destination}{f' from {origin}' if origin else ''}.
 
 Use these search results:
-{search_results}
+{as_data('web_search', search_results, empty='No results.')}
 
 Cover, in a few bullet points each:
 1. Entry and visa basics (say that requirements depend on the traveler's nationality and should be checked officially)
@@ -38,7 +38,7 @@ Keep it under 250 words.
 """
 
     response = get_llm().invoke([
-        SystemMessage(content="You are a knowledgeable local travel guide."),
+        SystemMessage(content=f"You are a knowledgeable local travel guide. {UNTRUSTED_DATA_RULE}"),
         HumanMessage(content=prompt),
     ])
 

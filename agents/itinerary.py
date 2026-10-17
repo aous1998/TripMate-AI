@@ -1,6 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.common import describe_trip, mark_done
+from agents.common import UNTRUSTED_DATA_RULE, as_data, describe_trip, mark_done
 from llm import get_llm
 from state import TravelState
 
@@ -16,16 +16,16 @@ Trip Details:
 {describe_trip(state.get('trip'))}
 
 Flight Results:
-{state.get('flight_results') or 'Not requested.'}
+{as_data('flights', state.get('flight_results'))}
 
 Hotel Results:
-{state.get('hotel_results') or 'Not requested.'}
+{as_data('hotels', state.get('hotel_results'))}
 
 Weather:
-{state.get('weather') or 'Not requested.'}
+{as_data('weather', state.get('weather'))}
 
 Local Tips:
-{state.get('local_tips') or 'Not requested.'}
+{as_data('local_tips', state.get('local_tips'))}
 
 Make the itinerary practical, budget-aware, and easy to follow.
 Plan indoor activities on days with bad weather in the forecast.
@@ -33,7 +33,7 @@ Show all costs in euros (EUR) unless the user asks for a different currency.
 """
 
     response = get_llm().invoke([
-        SystemMessage(content="You are an expert travel planner."),
+        SystemMessage(content=f"You are an expert travel planner. {UNTRUSTED_DATA_RULE}"),
         HumanMessage(content=prompt)
     ])
 

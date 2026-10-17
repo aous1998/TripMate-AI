@@ -2,24 +2,10 @@ from typing import get_args
 
 from langgraph.checkpoint.memory import InMemorySaver
 
-from conftest import FakeLLM
-from llm import set_llm
-from state import AGENT_ORDER, AgentName, SupervisorDecision, TripDetails
+from conftest import FakeLLM, decision
+from conftest import run_graph as run
+from state import AGENT_ORDER, AgentName
 from tools.flight_tool import parse_route
-from workflow import build_graph, new_request_state
-
-
-def decision(agents, **trip):
-    return SupervisorDecision(trip=TripDetails(**trip), agents=agents, reasoning="test")
-
-
-def run(llm, query, thread_id="t1", checkpointer=None):
-    set_llm(llm)
-    graph = build_graph().compile(checkpointer=checkpointer or InMemorySaver())
-    return graph.invoke(
-        new_request_state(query),
-        {"configurable": {"thread_id": thread_id}},
-    )
 
 
 def test_full_trip_runs_all_six_agents_in_order(fake_tools):
@@ -38,6 +24,7 @@ def test_full_trip_runs_all_six_agents_in_order(fake_tools):
     assert result["itinerary"] == "fake answer 2"
     assert result["budget"]["total_eur"] == 1050
     assert result["messages"][-1].content == "fake answer 3"  # responder
+    assert result["final_answer"].startswith("fake answer 3")
     # supervisor, local guide, itinerary, budget, responder
     assert result["llm_calls"] == 5
 

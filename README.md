@@ -29,6 +29,7 @@ A responder agent then writes the final answer.
 - 🧭 Supervisor agent that extracts typed trip details and routes to only the agents a request needs
 - 🧠 Multi-agent orchestration with LangGraph
 - 🔌 All tools served by an MCP server; agents call them through an MCP client over stdio
+- 🛡️ Guardrails on input (prompt injection, off-topic, card numbers), on tool data and on output (secret redaction, code-computed budget check)
 - 📝 Structured travel itinerary generation
 - 🌐 FastAPI backend with a simple web interface
 - 💾 Conversation state persistence using PostgreSQL
@@ -134,16 +135,28 @@ curl -X POST http://127.0.0.1:8000/api/travel \
 ## How the Workflow Works
 
 ```text
-START -> supervisor -> one of six specialists -> supervisor -> ... -> responder -> END
+START -> input_guardrail -> supervisor -> one of six specialists -> supervisor -> ...
+                                       -> responder -> output_guardrail -> END
+Blocked or off-topic requests: -> blocked_response -> END
 ```
 
-1. The user submits a travel request.
+1. The user submits a travel request, and the **input guardrail** screens it before any LLM call.
 2. The **supervisor** makes one structured-output LLM call that extracts typed trip details (origin, destination, days, budget, currency, travelers, interests) and picks which specialists the request needs.
 3. The supervisor routes to the next pending specialist through a conditional edge. Each specialist writes its result to the shared state and hands back to the supervisor.
 4. Specialists always run in dependency order (research first, then the itinerary, then the budget), whatever order the LLM listed them in.
-5. When every planned agent has run, the **responder** writes the final answer from whatever was gathered.
+5. When every planned agent has run, the **responder** writes the final answer from whatever was gathered, and the **output guardrail** checks it.
 
 If structured output fails, the supervisor falls back to running every agent, so the request still gets an answer.
+
+## Guardrails
+
+| Layer | Where | What it does |
+| --- | --- | --- |
+| Input rules | `agents/guardrails.py` | Blocks empty or over-long input, prompt-injection phrases ("ignore previous instructions", "reveal your system prompt", ...) and payment card numbers (Luhn-checked), before any LLM call |
+| Topic check | Supervisor structured output | `is_travel_request: false` sends the request to a polite refusal without running any agent |
+| Structured output validation | `state.py` (Pydantic validators) | Coerces bad LLM values instead of failing: currency codes, trip length 1-60 days, positive budgets, 1-20 travelers, non-negative costs |
+| Untrusted tool data | `agents/common.py` | Web and API results are fenced in `<data>` tags and the model is told never to follow instructions inside them, to resist prompt injection from web pages |
+| Output checks | `output_guardrail` node | Redacts anything that looks like an API key or database password, and appends a budget verdict computed in code from the itemised estimate |
 
 ## MCP Tool Server
 

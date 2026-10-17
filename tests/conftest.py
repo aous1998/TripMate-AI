@@ -2,13 +2,15 @@ import os
 
 import pytest
 from langchain_core.messages import AIMessage
+from langgraph.checkpoint.memory import InMemorySaver
 
 # The tool modules read API keys at import time; tests never call the real APIs.
 os.environ.setdefault("TAVILY_API_KEY", "test-key")
 os.environ.setdefault("AVIATIONSTACK_API_KEY", "test-key")
 
 from llm import set_llm  # noqa: E402
-from state import BudgetEstimate, BudgetLine, SupervisorDecision  # noqa: E402
+from state import BudgetEstimate, BudgetLine, SupervisorDecision, TripDetails  # noqa: E402
+from workflow import build_graph, new_request_state  # noqa: E402
 
 
 DEFAULT_BUDGET = BudgetEstimate(
@@ -24,16 +26,19 @@ DEFAULT_BUDGET = BudgetEstimate(
 class FakeLLM:
     """Stands in for ChatGroq: canned structured outputs and numbered text answers."""
 
-    def __init__(self, decision=None, budget=DEFAULT_BUDGET, fail_structured=False):
+    def __init__(self, decision=None, budget=DEFAULT_BUDGET, fail_structured=False, answers=None):
         self.outputs = {SupervisorDecision: decision, BudgetEstimate: budget}
         self.fail_structured = fail_structured
+        self.answers = answers or {}  # call number -> text, e.g. {1: "..."}
         self.prompts = []
+        self.structured_calls = 0
 
     def with_structured_output(self, schema):
         llm = self
 
         class StructuredRunner:
             def invoke(self, messages):
+                llm.structured_calls += 1
                 if llm.fail_structured:
                     raise ValueError("model returned no tool call")
                 return llm.outputs[schema]
@@ -42,7 +47,26 @@ class FakeLLM:
 
     def invoke(self, messages):
         self.prompts.append(messages[-1].content)
-        return AIMessage(content=f"fake answer {len(self.prompts)}")
+        n = len(self.prompts)
+        return AIMessage(content=self.answers.get(n, f"fake answer {n}"))
+
+
+def decision(agents, is_travel_request=True, **trip):
+    return SupervisorDecision(
+        is_travel_request=is_travel_request,
+        trip=TripDetails(**trip),
+        agents=agents,
+        reasoning="test",
+    )
+
+
+def run_graph(llm, query, thread_id="t1", checkpointer=None):
+    set_llm(llm)
+    graph = build_graph().compile(checkpointer=checkpointer or InMemorySaver())
+    return graph.invoke(
+        new_request_state(query),
+        {"configurable": {"thread_id": thread_id}},
+    )
 
 
 @pytest.fixture
