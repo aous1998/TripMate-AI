@@ -6,19 +6,19 @@ Maintained by [Aous Abdulhamid](https://github.com/aous1998).
 
 ## Why this project?
 
-Planning a trip usually means jumping between multiple websites, tools, and spreadsheets. This project brings that flow into one experience by combining:
+Planning a trip usually means jumping between multiple websites, tools, and spreadsheets. This project brings that flow into one experience: a supervisor agent reads the request, extracts the trip details, and routes work to only the specialist agents it needs:
 
 - a flight-search agent,
 - a hotel-research agent,
-- an itinerary-planning agent, and
-- a final response agent,
+- an itinerary-planning agent,
 
-all coordinated through a LangGraph workflow.
+before a responder agent writes the final answer.
 
 ## Features
 
 - ✈️ Flight research using AviationStack
 - 🏨 Hotel suggestions using Tavily search
+- 🧭 Supervisor agent that extracts typed trip details and routes to only the agents a request needs
 - 🧠 Multi-agent orchestration with LangGraph
 - 📝 Structured travel itinerary generation
 - 🌐 FastAPI backend with a simple web interface
@@ -42,11 +42,17 @@ all coordinated through a LangGraph workflow.
 ```text
 .
 ├── app.py                # FastAPI app entry point
-├── backend.py            # LangGraph travel workflow
+├── backend.py            # PostgreSQL checkpointer + run_travel_agent()
+├── workflow.py           # LangGraph graph: supervisor, specialists, responder
+├── state.py              # Typed graph state and supervisor schemas
+├── llm.py                # Shared Groq chat model
+├── agents/               # Supervisor, flight, hotel, itinerary, responder
+├── tools/                # Flight and web search integrations
+├── tests/                # Offline tests (fake LLM, no API keys needed)
+├── cli.py                # Run one request from the terminal
 ├── requirements.txt      # Python dependencies
 ├── static/               # Static frontend assets
-├── templates/            # HTML templates
-└── tools/                # Flight and web search integrations
+└── templates/            # HTML templates
 ```
 
 ## Prerequisites
@@ -114,11 +120,26 @@ curl -X POST http://127.0.0.1:8000/api/travel \
 
 ## How the Workflow Works
 
+```text
+START -> supervisor -> flight_agent | hotel_agent | itinerary_agent -> supervisor -> ... -> responder -> END
+```
+
 1. The user submits a travel request.
-2. The flight agent gathers flight-related information.
-3. The hotel agent searches for accommodation suggestions.
-4. The itinerary agent creates a practical travel plan.
-5. The final agent formats the result into a polished response.
+2. The **supervisor** makes one structured-output LLM call that extracts typed trip details (origin, destination, days, budget, currency, travelers, interests) and picks which specialists the request needs.
+3. The supervisor routes to the next pending specialist through a conditional edge. Each specialist writes its result to the shared state and hands back to the supervisor.
+4. Specialists always run in dependency order (flights and hotels before the itinerary), whatever order the LLM listed them in.
+5. When every planned agent has run, the **responder** writes the final answer from whatever was gathered.
+
+If structured output fails, the supervisor falls back to running every agent, so the request still gets an answer.
+
+## Running Tests
+
+The tests use a fake LLM and fake tools, so they need no API keys or database:
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest
+```
 
 ## Contributing
 

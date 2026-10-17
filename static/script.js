@@ -35,12 +35,18 @@ function hideError() {
     errorBox.textContent = "";
 }
 
-function showResult(answer, threadId) {
+function formatAgentName(name) {
+    const label = name.replace(/_agent$/, "");
+    return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function showResult(answer, threadId, agentsRun) {
     latestAnswerMarkdown = answer;
 
     const resultSection = document.getElementById("resultSection");
     const resultBox = document.getElementById("resultBox");
     const threadInfo = document.getElementById("threadInfo");
+    const agentsInfo = document.getElementById("agentsInfo");
 
     if (typeof marked !== "undefined") {
         resultBox.innerHTML = marked.parse(answer);
@@ -49,6 +55,10 @@ function showResult(answer, threadId) {
     }
 
     threadInfo.textContent = `Thread ID: ${threadId}`;
+
+    agentsInfo.textContent = agentsRun && agentsRun.length
+        ? `Agents used: Supervisor → ${agentsRun.map(formatAgentName).join(" → ")} → Responder`
+        : "Agents used: Supervisor → Responder";
 
     resultSection.classList.remove("hidden");
 
@@ -92,7 +102,7 @@ async function sendMessage() {
         currentThreadId = data.thread_id;
         localStorage.setItem("travel_thread_id", currentThreadId);
 
-        showResult(data.answer, data.thread_id);
+        showResult(data.answer, data.thread_id, data.agents_run);
 
     } catch (error) {
         showError(error.message);

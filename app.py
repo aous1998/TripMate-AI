@@ -71,6 +71,8 @@ async def travel_planner(request_data: TravelRequest):
                 "success": True,
                 "thread_id": result["thread_id"],
                 "answer": result["answer"],
+                "trip": result["trip"],
+                "agents_run": result["agents_run"],
                 "flight_results": result["flight_results"],
                 "hotel_results": result["hotel_results"],
                 "itinerary": result["itinerary"],

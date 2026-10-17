@@ -92,6 +92,18 @@ COUNTRY_MAIN_AIRPORT = {
 
 
 CITY_MAIN_AIRPORT = {
+    "berlin": "BER",
+    "hamburg": "HAM",
+    "munich": "MUC",
+    "frankfurt": "FRA",
+    "dusseldorf": "DUS",
+    "cologne": "CGN",
+    "stuttgart": "STR",
+    "hannover": "HAJ",
+    "nuremberg": "NUE",
+    "leipzig": "LEJ",
+    "bremen": "BRE",
+    "dresden": "DRS",
     "dhaka": "DAC",
     "delhi": "DEL",
     "new delhi": "DEL",
@@ -116,7 +128,6 @@ CITY_MAIN_AIRPORT = {
     "paris": "CDG",
     "rome": "FCO",
     "madrid": "MAD",
-    "frankfurt": "FRA",
 }
 
 

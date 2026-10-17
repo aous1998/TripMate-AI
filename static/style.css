@@ -426,7 +426,8 @@ footer {
     .hero-section,
     footer,
     .result-actions,
-    #threadInfo {
+    #threadInfo,
+    #agentsInfo {
         display: none;
     }
 
