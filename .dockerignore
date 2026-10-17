@@ -5,3 +5,9 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+# Secrets and local files must never be baked into the image
+.env
+.git
+__pycache__/
+*.pyc
+.pytest_cache/

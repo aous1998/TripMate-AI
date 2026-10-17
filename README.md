@@ -129,6 +129,8 @@ docker build -t tripmate-ai .
 docker run --env-file .env -p 8000:8000 tripmate-ai
 ```
 
+Keys are passed at run time with `--env-file`; `.dockerignore` keeps `.env` out of the image. The MCP tool server starts inside the container automatically.
+
 ## API Endpoints
 
 - GET /health - Health check
