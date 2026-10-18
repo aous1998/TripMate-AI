@@ -2,6 +2,8 @@
 
 `architecture.excalidraw` (open it at https://excalidraw.com, via **Open**) was built from the code at commit `1764774`, not from the README. Rebuild it with `python docs/architecture/gen.py docs/architecture` and check it with `python docs/architecture/verify.py docs/architecture/architecture.excalidraw .`.
 
+Also here: `system-design.excalidraw`, a one-page whiteboard-style system design (goals, rules, components and the labelled request flow). Rebuild it with `python docs/architecture/system_design.py <out-dir>`.
+
 ## Views
 
 0. Read this first: summary, reading order, run/test commands, legend
