@@ -4,6 +4,8 @@ An open-source AI travel planner that turns a natural-language trip request into
 
 Maintained by [Aous Abdulhamid](https://github.com/aous1998).
 
+![TripMate AI home screen](docs/images/tripmate-home.webp)
+
 ## Why this project?
 
 Planning a trip usually means jumping between multiple websites, tools, and spreadsheets. This project brings that flow into one experience: a supervisor agent reads the request, extracts the trip details, and routes work to only the specialist agents it needs:
