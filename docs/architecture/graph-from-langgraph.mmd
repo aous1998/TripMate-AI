@@ -1,0 +1,45 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	input_guardrail(input_guardrail)
+	blocked_response(blocked_response)
+	supervisor(supervisor)
+	responder(responder)
+	output_guardrail(output_guardrail)
+	human_review(human_review)
+	flight_agent(flight_agent)
+	hotel_agent(hotel_agent)
+	weather_agent(weather_agent)
+	local_guide_agent(local_guide_agent)
+	itinerary_agent(itinerary_agent)
+	budget_agent(budget_agent)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> input_guardrail;
+	budget_agent --> supervisor;
+	flight_agent --> supervisor;
+	hotel_agent --> supervisor;
+	human_review --> supervisor;
+	input_guardrail -.-> blocked_response;
+	input_guardrail -.-> supervisor;
+	itinerary_agent --> supervisor;
+	local_guide_agent --> supervisor;
+	responder --> output_guardrail;
+	supervisor -.-> blocked_response;
+	supervisor -.-> budget_agent;
+	supervisor -.-> flight_agent;
+	supervisor -.-> hotel_agent;
+	supervisor -.-> human_review;
+	supervisor -.-> itinerary_agent;
+	supervisor -.-> local_guide_agent;
+	supervisor -.-> responder;
+	supervisor -.-> weather_agent;
+	weather_agent --> supervisor;
+	blocked_response --> __end__;
+	output_guardrail --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
