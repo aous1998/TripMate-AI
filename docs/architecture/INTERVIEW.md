@@ -25,7 +25,7 @@ Solid boxes are what the code does today. Dashed boxes are either unverified (ex
 | 9 | "How do you handle safety and prompt injection?" | view 6 | Input rules before any LLM call, an off-topic flag in the supervisor's output, `<data>` fencing for web text, validators on structured output, secret redaction and a code-computed budget check on the answer, DOMPurify in the browser. Also say what is NOT covered: no auth, no rate limits, regex rules can be rephrased around. |
 | 10 | "Show me your data model and API." | views 5, 11 | `TravelState`, `TripDetails`, `SupervisorDecision`, `BudgetEstimate`; two endpoints; checkpoints keyed by `thread_id`. No retention policy yet. |
 | 11 | "What's your latency? Where does the time go? What does it cost?" | view 12 | Measured: about 25 ms of app overhead per full trip in memory, about 80 ms with local PostgreSQL. LLM and API latency, tokens and cost were not measured. Say so. Then: parallel research, streaming, caching, smaller models where quality allows. |
-| 12 | "How do you know it works? How do you evaluate an LLM system?" | view 13 | 50 pytest tests: deterministic unit tests with a fake LLM, plus real MCP and real PostgreSQL integration tests. The gap is LLM answer quality. Proposed: routing eval on a golden set, LLM-as-judge rubric, red-team set, online metrics. |
+| 12 | "How do you know it works? How do you evaluate an LLM system?" | view 13 | 51 pytest tests: deterministic unit tests with a fake LLM, plus real MCP and real PostgreSQL integration tests. The gap is LLM answer quality. Proposed: routing eval on a golden set, LLM-as-judge rubric, red-team set, online metrics. |
 | 13 | "How would you deploy and scale it?" | view 14 | Today one process, one shared DB connection. App replicas are stateless (state is in Postgres by `thread_id`), so: gateway with auth and rate limits, N replicas, a connection pool, tracing. The LLM provider's rate limit is the real ceiling. |
 
 ## Measurements behind the numbers
@@ -40,7 +40,7 @@ All from this repo, using `docs/architecture/` scripts and the test suite. The L
 | MCP server startup | about 2 s | first `list_tools()` |
 | LLM calls per full trip | 5 | traced run (supervisor, local guide, itinerary, budget, responder) |
 | Checkpoint rows per full trip | 20 | traced run, `checkpoints` table |
-| Tests | 50 (43 unit, 7 integration) | `pytest --collect-only` with `TEST_DATABASE_URL` set |
+| Tests | 51 (44 unit, 7 integration) | `pytest --collect-only` with `TEST_DATABASE_URL` set |
 
 Not measured: LLM latency, tokens, cost, external API latency, behaviour on Windows.
 

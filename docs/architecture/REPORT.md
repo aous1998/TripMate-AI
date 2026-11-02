@@ -23,7 +23,7 @@ Also here: `system-design.excalidraw`, a one-page whiteboard-style system design
 | API | `POST /api/travel`, `POST /api/travel/review`, `GET /`, `GET /health` | `@app.get/post` in `app.py` |
 | MCP tools | `search_flights`, `web_search`, `weather_forecast`, `convert_currency`, `lookup_airport` | `mcp_server.py`, live `list_tools()` |
 | External services | Groq, Tavily, AviationStack, Open-Meteo, Frankfurter, PostgreSQL, jsDelivr/cdnjs (browser) | URL and client grep |
-| Settings | Required: `DATABASE_URL`, `GROQ_API_KEY`, `TAVILY_API_KEY`. Optional: `AVIATIONSTACK_API_KEY`, `GROQ_MODEL`, `DEFAULT_ORIGIN_IATA`, `USE_MCP` | `os.getenv` grep, plus starting the app with each key unset |
+| Settings | Required to start: `DATABASE_URL`, `GROQ_API_KEY`. Without `TAVILY_API_KEY` or `AVIATIONSTACK_API_KEY` the app runs and those sections say "unavailable". Optional: `GROQ_MODEL`, `DEFAULT_ORIGIN_IATA`, `USE_MCP` | `os.getenv` grep, plus starting the app with each key unset (re-checked after the Tavily fix) |
 | Storage | 4 PostgreSQL tables (`checkpoints`, `checkpoint_writes`, `checkpoint_blobs`, `checkpoint_migrations`) keyed by `thread_id`; browser `localStorage.travel_thread_id` | `pg_tables` after a run, `script.js` |
 | Most-changed files | `README.md`, `backend.py`, `app.py`, `templates/index.html`, `tests/conftest.py` | `git log --name-only` |
 

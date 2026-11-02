@@ -229,6 +229,8 @@ Fifteen diagrams, built from the code and checked against it, live in [`docs/arc
 
 [`INTERVIEW.md`](docs/architecture/INTERVIEW.md) maps common AI system design interview questions to these diagrams, with measured numbers and trade-offs.
 
+New to the code? [`docs/CODE_WALKTHROUGH.md`](docs/CODE_WALKTHROUGH.md) explains every file step by step, in the order a request runs.
+
 ## Contributing
 
 Contributions are welcome. If you want to improve the app, add new travel features, or fix issues:

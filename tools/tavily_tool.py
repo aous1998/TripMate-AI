@@ -4,13 +4,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = TavilyClient(
-    api_key= os.getenv("TAVILY_API_KEY")
-)
+_client = None
+
+
+def get_client():
+    # Created on first use, not at import: the MCP server imports every tool
+    # module, so a missing Tavily key must only break web search.
+    global _client
+    if _client is None:
+        _client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+    return _client
 
 
 def tavily_search(query):
-    response = client.search(
+    response = get_client().search(
         query= query,
         max_results= 5
     )

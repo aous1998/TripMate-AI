@@ -175,13 +175,13 @@ c.box(ox + 40, oy + 690, 1120, 110,
 
 # ------------------------------------------------------------- 13 Evaluation & testing
 ox, oy = c.view(COLS[0], ROWS[3], 1200, 900, "13 - Evaluation and testing",
-                "What is tested today (50 pytest tests) and what an AI team would add.")
+                "What is tested today (51 pytest tests) and what an AI team would add.")
 c.text(ox + 40, oy + 105, "Today", 20, "#2563eb")
 c.box(ox + 40, oy + 140, 540, 90, "Browser click-through (Playwright, run by hand):\nreview -> changes -> approve, guardrail, mobile", BLUE, 14)
 c.box(ox + 40, oy + 245, 540, 110,
       "Integration (7): real MCP server over stdio (5),\nFastAPI + real PostgreSQL incl. restart (2)\ntests/test_mcp.py, tests/test_postgres_e2e.py", TEAL, 14)
 c.box(ox + 40, oy + 370, 540, 160,
-      "Unit, fake LLM + fake tools (43):\nguardrails 18, supervisor 9, agents 8, review 8\nrouting, order, fallbacks, budget maths, validators,\n"
+      "Unit, fake LLM + fake tools (44):\nguardrails 18, supervisor 9, agents 9, review 8\nrouting, order, fallbacks, budget maths, validators,\n"
       "interrupt / resume / max revisions", GREEN, 14)
 c.box(ox + 40, oy + 545, 540, 80, "Not covered: real LLM output quality.\nFake LLMs prove the plumbing, not the answers.", GRAY, 14, dashed=True)
 c.text(ox + 620, oy + 105, "To add (proposals)", 20, "#2563eb")

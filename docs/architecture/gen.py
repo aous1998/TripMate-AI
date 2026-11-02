@@ -259,7 +259,7 @@ for lab, fill in groups:
     gy += h + 22
 store = [("PostgreSQL\ncheckpoints - checkpoint_writes\ncheckpoint_blobs - checkpoint_migrations\nkey: thread_id\nkept forever: no cleanup in code", TEAL, 170),
          ("Browser localStorage\ntravel_thread_id\nreused for every request", BLUE, 110),
-         (".env - app won't start without:\nDATABASE_URL, GROQ_API_KEY, TAVILY_API_KEY\noptional: AVIATIONSTACK_API_KEY, GROQ_MODEL,\nDEFAULT_ORIGIN_IATA, USE_MCP\nnot in git, not in the Docker image", ORANGE, 150),
+         (".env - app won't start without:\nDATABASE_URL, GROQ_API_KEY\nwithout TAVILY_API_KEY / AVIATIONSTACK_API_KEY\nthose sections say 'unavailable'. Optional:\nGROQ_MODEL, DEFAULT_ORIGIN_IATA, USE_MCP", ORANGE, 150),
          ("Each new request resets every field\nexcept messages\n(workflow.new_request_state).", YELLOW, 120)]
 sy = oy + 110
 for lab, fill, h in store:

@@ -106,6 +106,19 @@ def test_weather_tool_formats_open_meteo_forecast(monkeypatch):
     assert "- 2026-10-19: Rain, 10–14°C, 80% chance of rain" in text
 
 
+def test_tavily_client_is_created_on_first_use(monkeypatch):
+    # The MCP server imports every tool module; a missing Tavily key must not
+    # break the import (and with it every other tool).
+    import importlib
+    from tools import tavily_tool
+
+    monkeypatch.delenv("TAVILY_API_KEY", raising=False)
+    monkeypatch.setattr("dotenv.load_dotenv", lambda *a, **k: False)
+    importlib.reload(tavily_tool)
+
+    assert tavily_tool._client is None
+
+
 def test_currency_tool_uses_ecb_rate(monkeypatch):
     def fake_get(url, params, timeout):
         assert params == {"base": "USD", "symbols": "EUR"}
