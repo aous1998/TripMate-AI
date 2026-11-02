@@ -3,27 +3,42 @@
 Usage: python docs/architecture/system_design.py docs/architecture
 Writes system-design.excalidraw (plus sd_view_<n>.json chunks for the Excalidraw MCP viewer).
 """
+# -----------------------------------------------------------------------------
+# How to read this script: it draws one big whiteboard-style picture with code.
+# chunk() starts a new camera position (the MCP viewer shows the drawing in
+# these steps); shape(), note(), text() and arrow() add elements at x/y pixel
+# coordinates (y grows downwards). The labels carry the explanation; the
+# numbers are only layout. The second half converts everything into a normal
+# .excalidraw file.
+# -----------------------------------------------------------------------------
 import json, random, sys
 from pathlib import Path
 
+# Output folder from the command line.
 OUT = Path(sys.argv[1])
+# Fill colours used on the whiteboard.
 WHITE, PURPLE, GREEN, RED, ORANGE, TEAL, BLUE = (
     "#ffffff", "#e5dbff", "#b2f2bb", "#ffc9c9", "#ffd8a8", "#c3fae8", "#dbe4ff")
+# chunks = list of camera steps, each a list of elements; cur = the one being drawn
 chunks, cur = [], None
+# id counter (inside a list so functions can change it)
 _n = [0]
 
 
+# A new unique id, prefixed "sd" so it never clashes with the other diagrams.
 def nid(p):
     _n[0] += 1
     return f"sd{p}{_n[0]}"
 
 
+# Start a new camera step (position and size of the visible area).
 def chunk(cam_x, cam_y, w=1200, h=900):
     global cur
     cur = [{"type": "cameraUpdate", "width": w, "height": h, "x": cam_x, "y": cam_y}]
     chunks.append(cur)
 
 
+# A labelled shape: kind = "rectangle", "ellipse" or "diamond".
 def shape(kind, x, y, w, h, label, fill=WHITE, stroke="#1e1e1e", fs=18, dashed=False):
     e = {"type": kind, "id": nid(kind[0]), "x": x, "y": y, "width": w, "height": h,
          "backgroundColor": fill, "fillStyle": "solid", "strokeColor": stroke,
@@ -43,10 +58,12 @@ def note(x, y, w, h, label, fs=16):
     return e
 
 
+# Free text.
 def text(x, y, s, fs=18, color="#1e1e1e"):
     cur.append({"type": "text", "id": nid("t"), "x": x, "y": y, "text": s, "fontSize": fs, "strokeColor": color})
 
 
+# An arrow from (x1, y1) to (x2, y2), optionally labelled or dashed.
 def arrow(x1, y1, x2, y2, label=None, dashed=False, color="#1e1e1e", fs=16):
     e = {"type": "arrow", "id": nid("a"), "x": x1, "y": y1, "width": abs(x2 - x1), "height": abs(y2 - y1),
          "points": [[0, 0], [x2 - x1, y2 - y1]], "strokeColor": color, "strokeWidth": 2, "endArrowhead": "arrow"}
@@ -58,6 +75,7 @@ def arrow(x1, y1, x2, y2, label=None, dashed=False, color="#1e1e1e", fs=16):
 
 
 # --- requirements, written like the whiteboard notes --------------------------
+# Top: the requirements, like notes on a whiteboard.
 chunk(330, -40)
 text(450, 0, "TripMate AI - system design: how one trip request is handled", 28)
 text(450, 60,
@@ -76,6 +94,7 @@ text(450, 60,
      "No vector DB: live data comes from APIs, not from documents", 20)
 
 # --- entry: observability, channel, input guardrail --------------------------
+# Row 2: monitoring bar, the web page as entry point, and the input guardrail.
 chunk(150, 520)
 shape("rectangle", 200, 590, 1500, 50,
       "Observability today: llm_calls, agents_run and guardrail_notes in every API reply   (no tracing or evals yet)", WHITE, fs=18)
@@ -87,6 +106,7 @@ shape("rectangle", 1420, 715, 260, 90, "Blocked:\npolite refusal,\nno LLM call",
 arrow(1340, 760, 1420, 760, "unsafe")
 
 # --- supervisor, state, human review ------------------------------------------
+# Row 3: the supervisor in the middle, PostgreSQL on the left, human review on the right.
 shape("ellipse", 650, 950, 360, 190,
       "Supervisor agent:\n- extracts trip details\n  (structured output)\n- picks agents, routes\n  in a fixed order", PURPLE)
 arrow(1170, 860, 960, 975, "allowed")
@@ -97,6 +117,7 @@ arrow(1010, 1020, 1450, 1020, "2. pause after research (interrupt)")
 arrow(1450, 1075, 1005, 1075, "changes -> re-plan, research again", dashed=True)
 
 # --- research agents and the MCP tool server ----------------------------------
+# Row 4: the four research agents and the MCP tool server under them.
 chunk(80, 1080)
 research = [("Flight agent\nlive flights", 150, GREEN), ("Hotel agent\nhotel ideas", 420, GREEN),
             ("Weather agent\n7-day forecast", 690, GREEN), ("Local guide agent\nentry, transport,\nmoney tips (LLM)", 960, PURPLE)]
@@ -114,6 +135,7 @@ arrow(1000, 1555, 1100, 1555, "HTTPS")
 text(300, 1622, "if a tool fails -> it becomes a note in the answer, the run continues", 16, "#555555")
 
 # --- planning, answer and output guardrail ------------------------------------
+# Row 5: itinerary -> budget -> responder -> output guardrail -> back to the user.
 chunk(200, 1300, 1600, 1200)
 shape("ellipse", 1460, 1700, 280, 140, "Itinerary agent\nday-by-day plan\n(LLM)", PURPLE, fs=16)
 arrow(1600, 1100, 1600, 1700, "3. approved -> plan")
@@ -129,16 +151,20 @@ shape("diamond", 560, 1900, 400, 200, "Output guardrail:\nredact keys/passwords\
 arrow(760, 1840, 760, 1900)
 shape("rectangle", 120, 1950, 320, 100, "Answer shown in the browser\n(sanitised with DOMPurify)", BLUE, fs=16)
 arrow(560, 2000, 440, 2000, "respond\nto the user", fs=14)
+# Two final camera steps that zoom out to show the whole picture.
 cur.append({"type": "cameraUpdate", "width": 2400, "height": 1800, "x": -150, "y": 280})
 cur.append({"type": "cameraUpdate", "width": 2900, "height": 2175, "x": -350, "y": -30})
 
 # --- outputs -------------------------------------------------------------------
+# One JSON file per camera step (for the MCP viewer).
 for i, c in enumerate(chunks):
     (OUT / f"sd_view_{i}.json").write_text(json.dumps(c, separators=(",", ":")))
 
+# Fixed seed so the drawing looks the same on every run.
 rnd = random.Random(11)
 
 
+# Default values for every field Excalidraw expects, then the element's own values on top.
 def base(e):
     d = {"angle": 0, "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
          "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [],
@@ -149,6 +175,7 @@ def base(e):
     return d
 
 
+# A text element; inside a shape it is centred on (x, y).
 def text_el(s, fs, x, y, container=None, color="#1e1e1e"):
     lines = s.split("\n")
     w, h = max(len(l) for l in lines) * fs * 0.55, len(lines) * fs * 1.25
@@ -159,6 +186,7 @@ def text_el(s, fs, x, y, container=None, color="#1e1e1e"):
             "containerId": container, "autoResize": True}
 
 
+# Convert every element; labels become separate text elements bound to their shape.
 native = []
 for c in chunks:
     for e in c:
@@ -182,6 +210,7 @@ for c in chunks:
             el["boundElements"].append({"type": "text", "id": t["id"]})
             native.append(t)
 
+# Write system-design.excalidraw and print a short summary.
 (OUT / "system-design.excalidraw").write_text(json.dumps(
     {"type": "excalidraw", "version": 2, "source": "https://excalidraw.com", "elements": native,
      "appState": {"viewBackgroundColor": "#ffffff", "gridSize": None}, "files": {}}, indent=1))

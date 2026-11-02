@@ -1,3 +1,7 @@
+# .gitignore - files git must never track.
+# Most entries are the standard Python template; the important one for this
+# project is .env (your API keys and database password).
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

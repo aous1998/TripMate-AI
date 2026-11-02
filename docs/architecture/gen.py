@@ -7,25 +7,39 @@ Outputs:
   architecture.excalidraw  native file for excalidraw.com (labels as bound text)
   paths.txt                every file path written on the diagram, for verification
 """
+# -----------------------------------------------------------------------------
+# How to read this script: it draws the diagram with code. Each view() call
+# starts a new framed diagram at a position on the big canvas; box(), text()
+# and arrow() add shapes using x/y pixel coordinates (x grows to the right,
+# y grows downwards). ox, oy = the top-left corner of the current view, so
+# "ox + 40" means "40 pixels in from the frame's left edge". The text inside
+# the shapes is the explanation itself; the numbers are only layout.
+# -----------------------------------------------------------------------------
 import json, random, re, sys
 from pathlib import Path
 
+# Output folder from the command line, e.g. docs/architecture
 OUT = Path(sys.argv[1])
+# Pastel fill colours; STROKE maps each fill to a darker outline colour.
 BLUE, PURPLE, GREEN, RED, YELLOW, ORANGE, TEAL, GRAY = (
     "#a5d8ff", "#d0bfff", "#b2f2bb", "#ffc9c9", "#fff3bf", "#ffd8a8", "#c3fae8", "#f1f3f5")
 STROKE = {BLUE: "#4a9eed", PURPLE: "#8b5cf6", GREEN: "#22c55e", RED: "#ef4444",
           YELLOW: "#f59e0b", ORANGE: "#f59e0b", TEAL: "#06b6d4", GRAY: "#868e96"}
 
 views = []          # list of (camera, elements)
+# the view currently being drawn (a list of element dicts)
 cur = None
+# a counter in a list, so functions can change it without `global`
 _n = [0]
 
 
+# A new unique element id, e.g. "b12".
 def nid(p):
     _n[0] += 1
     return f"{p}{_n[0]}"
 
 
+# Start a new view: camera position (for the MCP viewer), grey frame, title, optional subtitle.
 def view(x, y, w, h, title, sub=None, cam=(1200, 900)):
     global cur
     cur = [{"type": "cameraUpdate", "width": cam[0], "height": cam[1], "x": x - 40, "y": y - 40}]
@@ -39,6 +53,7 @@ def view(x, y, w, h, title, sub=None, cam=(1200, 900)):
     return x, y
 
 
+# A rounded rectangle with a centred label; outline colour matches the fill.
 def box(x, y, w, h, label, fill, fs=18, dashed=False, align=None):
     e = {"type": "rectangle", "id": nid("b"), "x": x, "y": y, "width": w, "height": h,
          "backgroundColor": fill, "fillStyle": "solid", "strokeColor": STROKE[fill],
@@ -49,6 +64,7 @@ def box(x, y, w, h, label, fill, fs=18, dashed=False, align=None):
     return e
 
 
+# A grey ellipse (used for START / END).
 def ellipse(x, y, w, h, label):
     e = {"type": "ellipse", "id": nid("e"), "x": x, "y": y, "width": w, "height": h,
          "backgroundColor": GRAY, "fillStyle": "solid", "strokeColor": "#495057",
@@ -57,16 +73,19 @@ def ellipse(x, y, w, h, label):
     return e
 
 
+# A translucent background area that groups several boxes (e.g. "one Docker container").
 def zone(x, y, w, h, fill="#e5dbff", stroke="#8b5cf6", dashed=True):
     cur.append({"type": "rectangle", "id": nid("z"), "x": x, "y": y, "width": w, "height": h,
                 "backgroundColor": fill, "fillStyle": "solid", "opacity": 40, "strokeColor": stroke,
                 "strokeWidth": 2, "strokeStyle": "dashed" if dashed else "solid", "roundness": {"type": 3}})
 
 
+# Free text at a position.
 def text(x, y, s, fs=18, color="#1e1e1e"):
     cur.append({"type": "text", "id": nid("t"), "x": x, "y": y, "text": s, "fontSize": fs, "strokeColor": color})
 
 
+# An arrow from (x1, y1) to (x2, y2): optional label, dashed (= reply/data back), two-headed, colour.
 def arrow(x1, y1, x2, y2, label=None, color="#1e1e1e", dashed=False, both=False, fs=16):
     e = {"type": "arrow", "id": nid("a"), "x": x1, "y": y1, "width": abs(x2 - x1), "height": abs(y2 - y1),
          "points": [[0, 0], [x2 - x1, y2 - y1]], "strokeColor": color, "strokeWidth": 2, "endArrowhead": "arrow"}
@@ -80,6 +99,7 @@ def arrow(x1, y1, x2, y2, label=None, color="#1e1e1e", dashed=False, both=False,
     return e
 
 
+# Helpers to attach arrows to boxes: centre x/y, right edge, bottom edge of an element.
 def cx(e): return e["x"] + e["width"] / 2
 def cy(e): return e["y"] + e["height"] / 2
 def right(e): return e["x"] + e["width"]
@@ -87,6 +107,7 @@ def bottom(e): return e["y"] + e["height"]
 
 
 # ---------------------------------------------------------------- 0 Start here
+# View 0: how to read the diagrams, the order to read the code in, and the legend.
 ox, oy = view(0, 0, 1200, 900, "TripMate AI - read this first")
 text(ox + 30, oy + 80,
      "A web app that turns one trip request into flights, hotels, weather, local tips,\n"
@@ -131,6 +152,7 @@ arrow(ox + 720, ly + 90, ox + 840, ly + 90, color="#ef4444", dashed=True)
 text(ox + 855, ly + 78, "failure path", 16, "#c92a2a")
 
 # ---------------------------------------------------------------- 1 Context
+# View 1: the system as one box, with the user and every outside service around it.
 ox, oy = view(1350, 0, 1200, 900, "1 - Context: who and what it talks to")
 trav = box(ox + 40, oy + 380, 190, 90, "Traveler\n(web browser)", BLUE, 20)
 sysb = box(ox + 380, oy + 320, 360, 210, "TripMate AI\n(this repo)\nFastAPI + LangGraph\n+ MCP server", PURPLE, 22)
@@ -149,6 +171,7 @@ arrow(cx(sysb), bottom(sysb), cx(pg), pg["y"], "save / load state")
 text(ox + 820, oy + 625, "Dashed = real responses not exercised in\nthis scan (sandbox blocks them; faked in\ntests). Error paths were seen for real.", 16, "#555555")
 
 # ---------------------------------------------------------------- 2 Containers
+# View 2: the running processes (browser, app, MCP subprocess, database, APIs) and how they talk.
 ox, oy = view(0, 1050, 1200, 900, "2 - Containers: the running processes")
 br = box(ox + 40, oy + 160, 300, 150, "Browser page\ntemplates/index.html\nstatic/script.js\nstatic/style.css", BLUE, 18)
 zone(ox + 410, oy + 120, 530, 560, "#e5dbff", "#8b5cf6")
@@ -170,6 +193,7 @@ box(ox + 40, oy + 420, 320, 200,
     "If the MCP server can't\nstart, tools run inside\nthe app process instead\n(warning printed).\nUSE_MCP=false forces it.", YELLOW, 16)
 
 # ---------------------------------------------------------------- 3 Graph
+# View 3: every node of the LangGraph graph and every edge between them.
 ox, oy = view(1350, 1050, 1200, 900, "3 - The LangGraph graph (workflow.py)")
 st = ellipse(ox + 40, oy + 130, 120, 60, "START")
 ig = box(ox + 200, oy + 120, 240, 80, "input_guardrail\nagents/guardrails.py", RED, 16)
@@ -201,6 +225,7 @@ text(ox + 40, oy + 780, "Add a 7th agent in 4 places: agents/<name>.py,\nSPECIAL
      "AGENT_ORDER (state.py), and the agent list\nin the supervisor prompt (agents/supervisor.py).", 16, "#2563eb")
 
 # ---------------------------------------------------------------- 4 One request
+# View 4: the nodes that actually ran for one full request, in order.
 ox, oy = view(0, 2100, 2550, 1000, "4 - One request, as actually traced (graph.stream, stream_mode='updates')",
               "'Plan 7 days from Berlin to Nice under 1500 euros', review on. Real backend.py, PostgreSQL and MCP server; only the LLM was faked.",
               cam=(1600, 1200))
@@ -245,6 +270,7 @@ text(ox + 30, oy + 850, "Every specialist returns to the supervisor; the supervi
      "Steps 4, 6, 8, 10, 13, 15, 17 are routing in plain code.", 18, "#555555")
 
 # ---------------------------------------------------------------- 5 Data
+# View 5: what is in the shared state, and where it is stored.
 ox, oy = view(0, 3250, 1200, 950, "5 - Data and state")
 zone(ox + 30, oy + 100, 720, 800, "#e5dbff", "#8b5cf6", dashed=False)
 text(ox + 50, oy + 110, "TravelState (state.py): one per thread,\nsaved after every node", 20, "#5f3dc4")
@@ -267,6 +293,7 @@ for lab, fill, h in store:
     sy += h + 30
 
 # ---------------------------------------------------------------- 6 Trust
+# View 6: every place untrusted text enters, and the check applied there.
 ox, oy = view(1350, 3250, 1200, 950, "6 - Trust and safety: where untrusted input enters")
 rows = [("User message", "input_guardrail: length, injection\nphrases, card numbers - agents/guardrails.py"),
         ("Off-topic request", "supervisor sets is_travel_request=false\n-> polite refusal - agents/supervisor.py"),
@@ -288,9 +315,11 @@ box(ox + 40, oy + 740, 1120, 195,
     "- python app.py listens on 127.0.0.1 only; Docker listens on 0.0.0.0 (whole network)", GRAY, 16, dashed=True)
 
 # ---------------------------------------------------------------- outputs
+# One compact JSON file per view (for the Excalidraw MCP viewer).
 for i, els in enumerate(views):
     (OUT / f"view_{i}.json").write_text(json.dumps(els, separators=(",", ":")))
 
+# Collect every file path written on the diagram (verify.py checks they exist).
 paths = set()
 for els in views:
     for e in els:
@@ -299,9 +328,11 @@ for els in views:
 (OUT / "paths.txt").write_text("\n".join(sorted(paths)))
 
 # Native Excalidraw: expand label shorthand into bound text elements.
+# Fixed seed: the hand-drawn wobble is identical on every run (stable git diffs).
 rnd = random.Random(7)
 
 
+# Default values for every field Excalidraw expects, then the element's own values on top.
 def base(e):
     d = {"angle": 0, "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
          "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [],
@@ -312,6 +343,7 @@ def base(e):
     return d
 
 
+# A text element; inside a shape it is centred on (x, y), its size estimated from the text.
 def text_el(s, fs, x, y, container=None, color="#1e1e1e"):
     lines = s.split("\n")
     w = max(len(l) for l in lines) * fs * 0.55
@@ -323,6 +355,7 @@ def text_el(s, fs, x, y, container=None, color="#1e1e1e"):
             "containerId": container, "autoResize": True}
 
 
+# Convert every element; a shape's label becomes a separate text element bound to the shape.
 native = []
 for els in views:
     for e in els:
@@ -345,6 +378,7 @@ for els in views:
             el["boundElements"].append({"type": "text", "id": t["id"]})
             native.append(t)
 
+# Write the .excalidraw file and print a short summary.
 (OUT / "architecture.excalidraw").write_text(json.dumps(
     {"type": "excalidraw", "version": 2, "source": "https://excalidraw.com", "elements": native,
      "appState": {"viewBackgroundColor": "#ffffff", "gridSize": None}, "files": {}}, indent=1))

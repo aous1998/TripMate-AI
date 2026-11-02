@@ -1,3 +1,9 @@
+# -----------------------------------------------------------------------------
+# agents/itinerary.py - writes the day-by-day plan.
+# One LLM call. It runs after the research agents (and after the human review,
+# if enabled), so it can use flights, hotels, weather and local tips.
+# -----------------------------------------------------------------------------
+
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.common import UNTRUSTED_DATA_RULE, as_data, describe_feedback, describe_trip, mark_done
@@ -6,6 +12,9 @@ from state import TravelState
 
 
 def itinerary_agent(state: TravelState):
+    # The prompt: request + trip facts + change requests + every research result.
+    # Research results are wrapped in <data> tags by as_data() (injection defence);
+    # a result that does not exist becomes "Not requested.".
     prompt = f"""
 Create a complete travel itinerary.
 
@@ -35,14 +44,15 @@ Plan indoor activities on days with bad weather in the forecast.
 Show all costs in euros (EUR) unless the user asks for a different currency.
 """
 
+    # A normal (free-text) LLM call: system message = role + rule, human message = the task.
     response = get_llm().invoke([
         SystemMessage(content=f"You are an expert travel planner. {UNTRUSTED_DATA_RULE}"),
         HumanMessage(content=prompt)
     ])
 
     return {
-        "itinerary": response.content,
+        "itinerary": response.content,                 # the plan text (Markdown)
         "completed": mark_done(state, "itinerary_agent"),
-        "messages": [response],
+        "messages": [response],                        # the full AI message goes into the history
         "llm_calls": state.get("llm_calls", 0) + 1
     }

@@ -1,4 +1,8 @@
+# .dockerignore - files that "COPY . ." in the Dockerfile must skip.
+# Keeps the image small and, most importantly, keeps secrets out of it.
+
 # Environments
+# (local virtual environments: the image installs its own packages)
 .venv
 env/
 venv/
@@ -7,7 +11,9 @@ env.bak/
 venv.bak/
 # Secrets and local files must never be baked into the image
 .env
+# git history is not needed to run the app
 .git
+# Python caches
 __pycache__/
 *.pyc
 .pytest_cache/

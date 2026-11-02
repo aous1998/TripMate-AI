@@ -4,16 +4,27 @@ Usage: python docs/architecture/interview_diagrams.py <out-dir>
 Writes interview-diagrams.excalidraw (plus iv_view_<n>.json chunks for the MCP viewer).
 Facts and measurements behind each view are listed in INTERVIEW.md.
 """
+# -----------------------------------------------------------------------------
+# How to read this script: views 7-14 for an AI system design interview, drawn
+# with the Canvas helper from excalidraw_lib.py. c.view() starts a framed view;
+# c.box(), c.text() and c.arrow() add elements at pixel positions relative to
+# the view's corner (ox, oy). The labels carry the content; the numbers are
+# only layout. The facts behind each view are documented in INTERVIEW.md.
+# -----------------------------------------------------------------------------
 import sys
 from pathlib import Path
 
+# Make `import excalidraw_lib` work from any folder (it sits next to this file).
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from excalidraw_lib import BLUE, GRAY, GREEN, ORANGE, PURPLE, RED, TEAL, WHITE, YELLOW, Canvas  # noqa: E402
 
+# One canvas; every element id starts with "iv".
 c = Canvas("iv")
+# The views sit on a grid: 2 columns (x positions) and 4 rows (y positions).
 COLS, ROWS = (0, 1350), (0, 1050, 2100, 3150)
 
 # ------------------------------------------------------------- 7 Request lifecycle
+# View 7: the states one request moves through, and the arrows between them.
 ox, oy = c.view(COLS[0], ROWS[0], 1200, 900, "7 - Request lifecycle (state machine)",
                 "What state is a request in, and what does the API return in each one?")
 rx = c.box(ox + 40, oy + 130, 190, 80, "received\nPOST /api/travel", BLUE)
@@ -50,6 +61,7 @@ c.box(ox + 640, oy + 700, 530, 150,
       "restart (tested: test_paused_review_survives_a_restart).", WHITE, 15)
 
 # ------------------------------------------------------------- 8 LLM calls & context
+# View 8: a table of every LLM call: what goes in, what comes out, and the safety checks.
 ox, oy = c.view(COLS[1], ROWS[0], 1200, 900, "8 - LLM calls: context in, output out",
                 "5 LLM calls per full trip. Model: GROQ_MODEL (default openai/gpt-oss-120b), max_retries=4.")
 heads = ["Context sent", "Call", "Output", "Checks / fallback"]
@@ -75,6 +87,7 @@ c.text(ox + 40, oy + 760,
        "Structured outputs use function calling (with_structured_output). Token counts and cost are not tracked yet.", 15, "#555555")
 
 # ------------------------------------------------------------- 9 Tool call over MCP
+# View 9: a sequence diagram of one tool call, from the agent through MCP to the external API and back.
 ox, oy = c.view(COLS[0], ROWS[1], 1200, 900, "9 - One tool call over MCP (sequence)",
                 "Example: hotel_agent asks for web_search. Same path for every tool.")
 lanes = [("Agent node\nagents/hotel.py", 40, PURPLE), ("run_tool()\nagents/common.py", 270, GREEN),
@@ -96,6 +109,7 @@ c.box(ox + 420, oy + 770, 360, 110, "Measured: about 3 ms per call once\nconnect
 c.box(ox + 800, oy + 770, 370, 110, "Server down -> tools run in-process\n(warning printed). USE_MCP=false\nforces it.", YELLOW, 14)
 
 # ------------------------------------------------------------- 10 Failure modes
+# View 10: a table of what can fail, what the code does about it, and what the user sees.
 ox, oy = c.view(COLS[1], ROWS[1], 1200, 900, "10 - Failure modes and fallbacks",
                 "What breaks, how the code notices, and what the user sees.")
 for h, x in zip(["What fails", "What the code does", "What the user sees"], [40, 380, 800]):
@@ -120,6 +134,7 @@ for i, (what, how, sees) in enumerate(fails):
     c.arrow(ox + 780, y + 33, ox + 800, y + 33)
 
 # ------------------------------------------------------------- 11 Data model
+# View 11: the data shapes (TravelState, TripDetails, SupervisorDecision, BudgetEstimate, API JSON, database).
 ox, oy = c.view(COLS[0], ROWS[2], 1200, 900, "11 - Data model and contracts",
                 "Typed schemas in state.py, the API contract in app.py and backend.py, storage in PostgreSQL.")
 ts = c.box(ox + 40, oy + 120, 360, 470,
@@ -145,6 +160,7 @@ c.box(ox + 640, oy + 640, 520, 150,
       "Nothing is ever deleted: no retention policy yet.", YELLOW, 15)
 
 # ------------------------------------------------------------- 12 Latency & cost
+# View 12: the slowest path through a request, and ideas to make it faster or cheaper.
 ox, oy = c.view(COLS[1], ROWS[2], 1200, 900, "12 - Latency and cost: critical path",
                 "Every step runs one after another. Purple = LLM call, orange = external API.")
 path = [("guard", RED), ("supervisor\nLLM", PURPLE), ("flights\nAPI", ORANGE), ("hotels\nAPI", ORANGE),
@@ -174,6 +190,7 @@ c.box(ox + 40, oy + 690, 1120, 110,
       "about 80 ms, so the gains are in the model and API calls.'", WHITE, 15)
 
 # ------------------------------------------------------------- 13 Evaluation & testing
+# View 13: what the tests cover today, and which evaluations a production version would add.
 ox, oy = c.view(COLS[0], ROWS[3], 1200, 900, "13 - Evaluation and testing",
                 "What is tested today (51 pytest tests) and what an AI team would add.")
 c.text(ox + 40, oy + 105, "Today", 20, "#2563eb")
@@ -197,6 +214,7 @@ c.box(ox + 40, oy + 670, 1120, 120,
       "LLM judge, run before changing the model or prompts.'", WHITE, 15)
 
 # ------------------------------------------------------------- 14 Deployment & scaling
+# View 14: how it is deployed today, and how it would scale behind a gateway.
 ox, oy = c.view(COLS[1], ROWS[3], 1200, 900, "14 - Deployment today, and how it would scale",
                 "Solid = what exists. Dashed = proposal, not built.")
 c.text(ox + 40, oy + 105, "Today", 20, "#2563eb")
@@ -221,6 +239,7 @@ c.box(ox + 40, oy + 660, 1120, 130,
       "replica can resume a paused review. Scale by adding replicas behind a gateway, pool the DB connections,\n"
       "and let the gateway handle auth and rate limits. The LLM provider's rate limit is the real ceiling.'", WHITE, 15)
 
+# Run as a script: write the per-view JSON files and the .excalidraw file, then print a summary.
 if __name__ == "__main__":
     out = Path(sys.argv[1])
     out.mkdir(parents=True, exist_ok=True)

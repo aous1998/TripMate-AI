@@ -1,5 +1,10 @@
 """Human-in-the-loop review: the graph pauses with interrupt() and resumes with Command."""
 
+# -----------------------------------------------------------------------------
+# tests/test_review.py - tests for agents/review.py (human-in-the-loop).
+# The graph runs with an in-memory checkpointer, pauses at interrupt(), and is
+# resumed with Command(resume=...) exactly as backend.resume_travel_agent() does.
+# -----------------------------------------------------------------------------
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
@@ -9,9 +14,12 @@ from llm import set_llm
 from state import AGENT_ORDER
 from workflow import build_graph, new_request_state
 
+# The agents that run before the review in a full trip.
 RESEARCH = ["flight_agent", "hotel_agent", "weather_agent", "local_guide_agent"]
 
 
+# Start a request with review switched on (by default). Returns the graph and
+# config (needed to resume) and the result of the first run.
 def start(llm, query, review=True):
     set_llm(llm)
     graph = build_graph().compile(checkpointer=InMemorySaver())
@@ -19,14 +27,17 @@ def start(llm, query, review=True):
     return graph, config, graph.invoke(new_request_state(query, review_enabled=review), config)
 
 
+# Resume the paused graph with the user's answer.
 def answer(graph, config, approved, feedback=""):
     return graph.invoke(Command(resume={"approved": approved, "feedback": feedback}), config)
 
 
+# Fake LLM planning a full trip Berlin -> Nice.
 def full_trip_llm(**trip):
     return FakeLLM(decision(AGENT_ORDER, origin="Berlin", destination="Nice", **trip))
 
 
+# A paused run's result contains "__interrupt__" with the review payload.
 def test_full_trip_pauses_after_research(fake_tools):
     graph, config, result = start(full_trip_llm(), "Plan a week in Nice from Berlin")
 
@@ -38,6 +49,7 @@ def test_full_trip_pauses_after_research(fake_tools):
     assert result["itinerary"] == "" and result["budget"] is None
 
 
+# Approve -> the rest of the plan runs and the run finishes.
 def test_approval_continues_to_itinerary_and_budget(fake_tools):
     graph, config, _ = start(full_trip_llm(), "Plan a week in Nice from Berlin")
 
@@ -48,6 +60,7 @@ def test_approval_continues_to_itinerary_and_budget(fake_tools):
     assert result["final_answer"]
 
 
+# Change request -> re-plan with the feedback, research again, pause again.
 def test_change_request_replans_and_researches_again(fake_tools):
     llm = full_trip_llm()
     graph, config, _ = start(llm, "Plan a week in Nice from Berlin")
@@ -66,6 +79,7 @@ def test_change_request_replans_and_researches_again(fake_tools):
     assert any("cheaper hotels near the beach" in prompt for prompt in llm.prompts)  # itinerary sees it
 
 
+# After MAX_REVISIONS change requests, the run finishes without asking again.
 def test_reviews_stop_after_max_revisions(fake_tools):
     graph, config, result = start(full_trip_llm(), "Plan a week in Nice from Berlin")
 
@@ -78,6 +92,7 @@ def test_reviews_stop_after_max_revisions(fake_tools):
     assert "budget_agent" in result["completed"]
 
 
+# Checkbox off -> no pause at all.
 def test_review_disabled_runs_straight_through(fake_tools):
     _, _, result = start(full_trip_llm(), "Plan a week in Nice from Berlin", review=False)
 
@@ -85,6 +100,7 @@ def test_review_disabled_runs_straight_through(fake_tools):
     assert result["completed"] == AGENT_ORDER
 
 
+# Only hotels asked: nothing builds on the research, so no review.
 def test_no_review_without_work_that_builds_on_research(fake_tools):
     _, _, result = start(FakeLLM(decision(["hotel_agent"], destination="Nice")), "Hotels in Nice?")
 
@@ -92,6 +108,7 @@ def test_no_review_without_work_that_builds_on_research(fake_tools):
     assert result["completed"] == ["hotel_agent"]
 
 
+# hotel_preferences from the supervisor end up in the hotel search text.
 def test_hotel_preferences_shape_the_search(fake_tools):
     llm = FakeLLM(decision(["hotel_agent"], destination="Nice", hotel_preferences="budget, near the beach"))
 
@@ -100,6 +117,7 @@ def test_hotel_preferences_shape_the_search(fake_tools):
     assert fake_tools["hotels"] == ["Best hotels in Nice (budget, near the beach)"]
 
 
+# with_review_step() puts human_review in the right place, or leaves the plan alone.
 def test_with_review_step_placement():
     on = {"review_enabled": True, "revisions": 0}
 

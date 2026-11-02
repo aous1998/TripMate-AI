@@ -1,3 +1,10 @@
+# -----------------------------------------------------------------------------
+# agents/responder.py - writes the final answer the user sees.
+# Runs after every planned agent has finished. One LLM call that combines all
+# results into one well-formatted Markdown answer. The output guardrail then
+# checks that answer before it is returned.
+# -----------------------------------------------------------------------------
+
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.budget import format_budget
@@ -8,6 +15,10 @@ from state import TravelState
 
 def responder_agent(state: TravelState):
     """Write the final answer from whatever the specialist agents gathered."""
+    # Everything the agents found goes into one prompt. Sections whose agent
+    # did not run show "Not requested." and the LLM is told to skip them.
+    # The budget is a ready-made Markdown table (format_budget), and the prompt
+    # tells the LLM to copy its figures exactly instead of inventing new ones.
     final_prompt = f"""
 Generate the final travel response for the user.
 
@@ -63,6 +74,8 @@ Important:
         HumanMessage(content=final_prompt)
     ])
 
+    # The answer is added as the newest message; output_guardrail reads
+    # state["messages"][-1] (the last message) and turns it into final_answer.
     return {
         "messages": [response],
         "llm_calls": state.get("llm_calls", 0) + 1

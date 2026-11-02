@@ -1,3 +1,9 @@
+# -----------------------------------------------------------------------------
+# agents/local_guide.py - practical tips for the destination.
+# A "tool + LLM" agent: first a web search (Tavily via MCP), then one LLM call
+# that turns the raw search results into short, structured tips.
+# -----------------------------------------------------------------------------
+
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.common import UNTRUSTED_DATA_RULE, as_data, mark_done, run_tool
@@ -9,12 +15,16 @@ def local_guide_agent(state: TravelState):
     trip = state.get("trip") or {}
     destination = trip.get("destination")
 
+    # No destination: skip the search and the LLM call, but still mark the
+    # agent done so the supervisor moves on.
     if not destination:
         return {
             "local_tips": "Local tips unavailable: no destination was given.",
             "completed": mark_done(state, "local_guide_agent"),
         }
 
+    # Build the search text, e.g.
+    # "Japan travel tips entry requirements local transport money etiquette for travelers from Germany".
     origin = trip.get("origin")
     query = f"{destination} travel tips entry requirements local transport money etiquette"
     if origin:
@@ -22,6 +32,7 @@ def local_guide_agent(state: TravelState):
 
     search_results = run_tool("web_search", query=query)
 
+    # The inner f-string adds " from <origin>" only when an origin is known.
     prompt = f"""
 Write short, practical local tips for a trip to {destination}{f' from {origin}' if origin else ''}.
 

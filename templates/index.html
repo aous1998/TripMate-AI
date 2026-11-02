@@ -1,25 +1,35 @@
 <!DOCTYPE html>
+<!-- templates/index.html - the only page of the app. FastAPI (app.py) serves it at "/". -->
+<!-- It has five parts: header text, the request form, the review panel, the result panel, and the error box. -->
+<!-- Panels start with the CSS class "hidden"; static/script.js shows or hides them. -->
 <html lang="en">
 <head>
+    <!-- Text encoding: UTF-8 (needed for emoji and the € sign). -->
     <meta charset="UTF-8">
 
+    <!-- Make the page fit phone screens instead of showing a zoomed-out desktop page. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <!-- The text in the browser tab. -->
     <title>TripMate AI</title>
 
+    <!-- All the styling (colours, layout, buttons) lives in static/style.css. -->
     <link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
 
+    <!-- Decorative blurred colour circles behind the page (pure CSS, no content). -->
     <div class="page-bg">
         <div class="gradient-circle circle-1"></div>
         <div class="gradient-circle circle-2"></div>
         <div class="gradient-circle circle-3"></div>
     </div>
 
+    <!-- Everything visible sits inside this centred container. -->
     <main class="app-container">
 
+        <!-- 1. Header: badge, title and one-line description. -->
         <section class="hero-section">
             <div class="badge">
                 ✈️ TripMate AI — A Multi-Agent Travel Planner with LangGraph
@@ -34,6 +44,7 @@
             </p>
         </section>
 
+        <!-- 2. The request form. -->
         <section class="planner-card">
 
             <div class="card-header">
@@ -44,24 +55,30 @@
                     </p>
                 </div>
 
+                <!-- Small green "Online" indicator (decoration only). -->
                 <div class="status-pill">
                     <span class="status-dot"></span>
                     Online
                 </div>
             </div>
 
+            <!-- The text box and the send button. -->
             <div class="input-area">
+                <!-- id="userInput" is read by sendMessage() in script.js. -->
                 <textarea
                     id="userInput"
                     placeholder="Plan a complete 7 days trip from Germany to France including flights, hotels and sightseeing under 1500 euros..."
                 ></textarea>
 
+                <!-- onclick calls the JavaScript function when the button is clicked. -->
                 <button id="sendBtn" onclick="sendMessage()">
                     <span id="btnText">Generate Plan</span>
+                <!-- Spinning circle shown while a request runs (setLoading in script.js). -->
                     <span id="btnLoader" class="loader hidden"></span>
                 </button>
             </div>
 
+            <!-- Example prompts: clicking one fills the text box via setPrompt(). -->
             <div class="quick-prompts">
                 <button onclick="setPrompt('Plan a complete 7 days trip from Germany to France including flights, hotels and sightseeing under 1500 euros.')">
                     France Trip
@@ -80,13 +97,16 @@
                 </button>
             </div>
 
+            <!-- The human-in-the-loop switch; sent to the server as human_review: true/false. -->
             <label class="review-toggle">
+                <!-- &amp; below is how HTML writes the & character. -->
                 <input type="checkbox" id="reviewToggle" checked>
                 Let me review flights &amp; hotels before the itinerary is built
             </label>
 
         </section>
 
+        <!-- 3. Review panel: shown when the server answers status "needs_review" (showReview). -->
         <section id="reviewSection" class="result-section review-section hidden">
 
             <div class="result-header">
@@ -96,6 +116,7 @@
                 </div>
             </div>
 
+            <!-- Flights and hotels side by side; <pre> keeps the line breaks of the plain text. -->
             <div class="review-grid">
                 <div class="review-block">
                     <h3>✈️ Flights</h3>
@@ -108,12 +129,14 @@
                 </div>
             </div>
 
+            <!-- Optional change requests (sent as "feedback"). -->
             <textarea
                 id="reviewFeedback"
                 class="review-feedback"
                 placeholder="Want changes? e.g. 'cheaper hotels near the beach' or 'fly from Munich instead'"
             ></textarea>
 
+            <!-- submitReview(true) = approve, submitReview(false) = ask for the changes typed above. -->
             <div class="review-actions">
                 <button id="approveBtn" class="approve-btn" onclick="submitReview(true)">
                     Approve &amp; build itinerary
@@ -126,11 +149,13 @@
 
         </section>
 
+        <!-- 4. Result panel: shown when the plan is complete (showResult). -->
         <section id="resultSection" class="result-section hidden">
 
             <div class="result-header">
                 <div>
                     <h2>Your AI Travel Plan</h2>
+                    <!-- Filled in by showResult(): conversation id and the agents that ran. -->
                     <p id="threadInfo">Thread ID: -</p>
                     <p id="agentsInfo"></p>
                 </div>
@@ -146,13 +171,16 @@
                 </div>
             </div>
 
+            <!-- This whole block is what "Download PDF" turns into a PDF. -->
             <div id="pdfContent" class="pdf-content">
                 <h1 class="pdf-title">AI Travel Plan</h1>
+                <!-- The answer's Markdown, rendered to HTML and sanitised, goes in here. -->
                 <div id="resultBox" class="result-box"></div>
             </div>
 
         </section>
 
+        <!-- 5. Error box: shown by showError() in script.js. -->
         <section id="errorBox" class="error-box hidden"></section>
 
     </main>
@@ -161,6 +189,7 @@
         Built with FastAPI, LangGraph, MCP, Groq, PostgreSQL, Tavily, AviationStack, Open-Meteo and Frankfurter
     </footer>
 
+    <!-- Scripts load at the end of <body> so the page appears first. The three libraries come from public CDNs. -->
     <!-- Markdown Renderer -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
@@ -170,6 +199,7 @@
     <!-- PDF Download Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+    <!-- Loaded last because it uses the three libraries above. -->
     <!-- Your Custom JS -->
     <script src="/static/script.js"></script>
 

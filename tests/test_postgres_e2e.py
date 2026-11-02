@@ -5,6 +5,11 @@ Skipped unless TEST_DATABASE_URL is set, e.g.
 The LLM and the external APIs are faked; everything else is real.
 """
 
+# -----------------------------------------------------------------------------
+# tests/test_postgres_e2e.py - the most "real" tests: HTTP requests into the
+# FastAPI app (app.py -> backend.py) with a REAL PostgreSQL checkpointer.
+# Only the LLM (FakeLLM) and the tool calls (fake_tools) are faked.
+# -----------------------------------------------------------------------------
 import os
 import uuid
 
@@ -19,21 +24,29 @@ from llm import set_llm
 from state import AGENT_ORDER
 from workflow import build_graph
 
+# The test database; without it every test in this file is skipped (pytestmark applies to all).
 DB_URL = os.getenv("TEST_DATABASE_URL")
 pytestmark = pytest.mark.skipif(not DB_URL, reason="TEST_DATABASE_URL is not set")
 
 
+# One app instance for the whole file, pointed at the test database.
 @pytest.fixture(scope="module")
 def client():
+    # Remember the current values so they can be restored afterwards.
     saved = {key: os.environ.get(key) for key in ("DATABASE_URL", "GROQ_API_KEY", "USE_MCP")}
+    # USE_MCP=false: run tools in-process (they are faked anyway).
     os.environ.update({"DATABASE_URL": DB_URL, "USE_MCP": "false"})
     os.environ.setdefault("GROQ_API_KEY", "test-key")
 
+    # Import inside the fixture, AFTER setting the environment: importing app
+    # imports backend, which connects to DATABASE_URL at import time.
     from fastapi.testclient import TestClient
     import app
 
+    # TestClient sends HTTP requests to the app in-process (no real server needed).
     yield TestClient(app.app)
 
+    # Put the environment back as it was.
     for key, value in saved.items():
         if value is None:
             os.environ.pop(key, None)
@@ -41,12 +54,15 @@ def client():
             os.environ[key] = value
 
 
+# A fake LLM that plans a full trip Berlin -> Nice with a 900 EUR budget.
 def nice_trip_llm():
     return FakeLLM(decision(AGENT_ORDER, origin="Berlin", destination="Nice", budget=900))
 
 
+# The complete review flow through the HTTP API.
 def test_review_round_trip_through_the_api(client, fake_tools):
     set_llm(nice_trip_llm())
+    # A unique id so repeated test runs never clash in the database.
     thread_id = f"e2e_{uuid.uuid4().hex}"
 
     paused = client.post("/api/travel", json={
@@ -63,16 +79,19 @@ def test_review_round_trip_through_the_api(client, fake_tools):
     empty = client.post("/api/travel/review", json={"thread_id": thread_id, "approved": False})
     assert empty.status_code == 400
 
+    # Approve: the graph continues and finishes, with the code-computed budget check.
     done = client.post("/api/travel/review", json={"thread_id": thread_id, "approved": True}).json()
     assert done["status"] == "done"
     assert "human_review" in done["agents_run"]
     assert "Budget check" in done["answer"]
 
+    # A second answer to the same review is refused: the run is already finished.
     again = client.post("/api/travel/review", json={"thread_id": thread_id, "approved": True})
     assert again.status_code == 400
     assert "not waiting for a review" in again.json()["error"]
 
 
+# The pause is stored in PostgreSQL, so a brand-new graph can resume it.
 def test_paused_review_survives_a_restart(client, fake_tools):
     import backend
 

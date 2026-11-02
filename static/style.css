@@ -1,9 +1,15 @@
+/* static/style.css - all styling of the page (dark "glass" design). */
+/* Reading aid: ".name" targets class="name", "#name" targets id="name", "a, b" targets both. */
+/* Colours are written as #rrggbb or rgba(red, green, blue, opacity 0..1). */
+
+/* Reset: remove browser default spacing; width/height include padding and border. */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+/* The whole page: font, dark background, white text, no sideways scrolling. */
 body {
     font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     min-height: 100vh;
@@ -12,6 +18,7 @@ body {
     overflow-x: hidden;
 }
 
+/* Fixed background layer behind everything (z-index -1) with soft colour glows. */
 .page-bg {
     position: fixed;
     inset: 0;
@@ -22,6 +29,7 @@ body {
         linear-gradient(135deg, #07111f 0%, #0f172a 45%, #111827 100%);
 }
 
+/* The three blurred circles (shape and blur shared, position and colour below). */
 .gradient-circle {
     position: absolute;
     border-radius: 999px;
@@ -29,6 +37,7 @@ body {
     opacity: 0.45;
 }
 
+/* Blue circle, top left. */
 .circle-1 {
     width: 300px;
     height: 300px;
@@ -37,6 +46,7 @@ body {
     left: 5%;
 }
 
+/* Purple circle, top right. */
 .circle-2 {
     width: 260px;
     height: 260px;
@@ -45,6 +55,7 @@ body {
     right: 8%;
 }
 
+/* Teal circle, bottom middle. */
 .circle-3 {
     width: 220px;
     height: 220px;
@@ -53,17 +64,20 @@ body {
     left: 35%;
 }
 
+/* Centred content column: at most 1120px wide, 16px gap at each side on small screens. */
 .app-container {
     width: min(1120px, calc(100% - 32px));
     margin: 0 auto;
     padding: 56px 0 30px;
 }
 
+/* Header area (badge, big title, description). */
 .hero-section {
     text-align: center;
     margin-bottom: 34px;
 }
 
+/* The rounded pill above the title. */
 .badge {
     display: inline-flex;
     align-items: center;
@@ -78,6 +92,7 @@ body {
     margin-bottom: 20px;
 }
 
+/* Big title: size grows with the screen (clamp), gradient-coloured text. */
 .hero-section h1 {
     font-size: clamp(2.2rem, 6vw, 5rem);
     line-height: 1;
@@ -88,6 +103,7 @@ body {
     -webkit-text-fill-color: transparent;
 }
 
+/* Description under the title. */
 .hero-section p {
     max-width: 760px;
     margin: 0 auto;
@@ -96,6 +112,7 @@ body {
     line-height: 1.7;
 }
 
+/* Shared look of the form card and the result/review panels: translucent card with blur. */
 .planner-card,
 .result-section {
     background: rgba(15, 23, 42, 0.76);
@@ -105,10 +122,12 @@ body {
     border-radius: 28px;
 }
 
+/* Inner spacing of the form card. */
 .planner-card {
     padding: 28px;
 }
 
+/* Title on the left, status pill or buttons on the right. */
 .card-header,
 .result-header {
     display: flex;
@@ -118,18 +137,21 @@ body {
     margin-bottom: 22px;
 }
 
+/* Section headings. */
 .card-header h2,
 .result-header h2 {
     font-size: 1.45rem;
     margin-bottom: 8px;
 }
 
+/* Grey helper text under the headings. */
 .card-header p,
 .result-header p {
     color: #94a3b8;
     line-height: 1.5;
 }
 
+/* The green "Online" pill. */
 .status-pill {
     display: flex;
     align-items: center;
@@ -144,6 +166,7 @@ body {
     white-space: nowrap;
 }
 
+/* The small green dot in the pill. */
 .status-dot {
     width: 8px;
     height: 8px;
@@ -152,6 +175,7 @@ body {
     box-shadow: 0 0 18px #22c55e;
 }
 
+/* Text box and button side by side: the box takes the free space (1fr), the button its own width. */
 .input-area {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -159,6 +183,7 @@ body {
     align-items: stretch;
 }
 
+/* Both text boxes (request and review feedback). */
 textarea {
     width: 100%;
     min-height: 150px;
@@ -174,15 +199,18 @@ textarea {
     transition: 0.25s ease;
 }
 
+/* Highlight the text box while typing in it. */
 textarea:focus {
     border-color: rgba(96, 165, 250, 0.85);
     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18);
 }
 
+/* The grey example text in an empty box. */
 textarea::placeholder {
     color: #64748b;
 }
 
+/* The "Generate Plan" button. */
 #sendBtn {
     min-width: 170px;
     border: none;
@@ -197,17 +225,20 @@ textarea::placeholder {
     transition: 0.25s ease;
 }
 
+/* Lift the button slightly on mouse-over. */
 #sendBtn:hover {
     transform: translateY(-2px);
     box-shadow: 0 22px 50px rgba(124, 58, 237, 0.4);
 }
 
+/* Faded and not clickable while a request runs. */
 #sendBtn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
 }
 
+/* Row of example-prompt chips (wraps onto more lines if needed). */
 .quick-prompts {
     display: flex;
     flex-wrap: wrap;
@@ -215,6 +246,7 @@ textarea::placeholder {
     margin-top: 18px;
 }
 
+/* One example chip. */
 .quick-prompts button {
     border: 1px solid rgba(148, 163, 184, 0.25);
     background: rgba(30, 41, 59, 0.7);
@@ -225,16 +257,19 @@ textarea::placeholder {
     transition: 0.2s ease;
 }
 
+/* Chip mouse-over. */
 .quick-prompts button:hover {
     background: rgba(59, 130, 246, 0.2);
     border-color: rgba(96, 165, 250, 0.5);
 }
 
+/* Space above the review/result panels. */
 .result-section {
     margin-top: 26px;
     padding: 28px;
 }
 
+/* The "Let me review flights & hotels" checkbox row. */
 .review-toggle {
     display: flex;
     align-items: center;
@@ -245,12 +280,14 @@ textarea::placeholder {
     cursor: pointer;
 }
 
+/* The checkbox itself (bigger, blue tick). */
 .review-toggle input {
     width: 18px;
     height: 18px;
     accent-color: #3b82f6;
 }
 
+/* Review panel: flights and hotels in two equal columns. */
 .review-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -258,6 +295,7 @@ textarea::placeholder {
     margin-bottom: 18px;
 }
 
+/* One review column. */
 .review-block {
     background: rgba(2, 6, 23, 0.64);
     border: 1px solid rgba(148, 163, 184, 0.24);
@@ -266,11 +304,13 @@ textarea::placeholder {
     min-width: 0;
 }
 
+/* Column heading (Flights / Hotels). */
 .review-block h3 {
     color: #ffffff;
     margin-bottom: 12px;
 }
 
+/* The plain-text research: keep line breaks, wrap long lines, scroll after 340px. */
 .review-block pre {
     color: #cbd5e1;
     white-space: pre-wrap;
@@ -282,10 +322,12 @@ textarea::placeholder {
     overflow-y: auto;
 }
 
+/* The review feedback box is shorter than the main text box. */
 .review-feedback {
     min-height: 90px;
 }
 
+/* Row with the Approve and Request changes buttons. */
 .review-actions {
     display: flex;
     flex-wrap: wrap;
@@ -293,6 +335,7 @@ textarea::placeholder {
     margin-top: 16px;
 }
 
+/* Shared look of the two review buttons. */
 .approve-btn,
 .changes-btn {
     border: none;
@@ -304,23 +347,27 @@ textarea::placeholder {
     transition: 0.25s ease;
 }
 
+/* Approve: green. */
 .approve-btn {
     background: linear-gradient(135deg, #16a34a, #22c55e);
     color: #ffffff;
     box-shadow: 0 12px 30px rgba(34, 197, 94, 0.25);
 }
 
+/* Request changes: neutral. */
 .changes-btn {
     border: 1px solid rgba(148, 163, 184, 0.3);
     background: rgba(15, 23, 42, 0.9);
     color: #ffffff;
 }
 
+/* Review button mouse-over. */
 .approve-btn:hover,
 .changes-btn:hover {
     transform: translateY(-1px);
 }
 
+/* Review buttons while working. */
 .approve-btn:disabled,
 .changes-btn:disabled {
     opacity: 0.6;
@@ -328,12 +375,14 @@ textarea::placeholder {
     transform: none;
 }
 
+/* Copy and Download PDF buttons. */
 .result-actions {
     display: flex;
     gap: 10px;
     align-items: center;
 }
 
+/* Shared look of Copy and Download PDF. */
 .copy-btn,
 .download-btn {
     border: none;
@@ -344,27 +393,32 @@ textarea::placeholder {
     transition: 0.25s ease;
 }
 
+/* Copy button colours. */
 .copy-btn {
     border: 1px solid rgba(148, 163, 184, 0.3);
     background: rgba(15, 23, 42, 0.9);
     color: #ffffff;
 }
 
+/* Copy button mouse-over. */
 .copy-btn:hover {
     background: rgba(59, 130, 246, 0.22);
 }
 
+/* Download PDF button colours. */
 .download-btn {
     background: linear-gradient(135deg, #16a34a, #22c55e);
     color: #ffffff;
     box-shadow: 0 12px 30px rgba(34, 197, 94, 0.25);
 }
 
+/* Download PDF mouse-over. */
 .download-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 16px 36px rgba(34, 197, 94, 0.35);
 }
 
+/* White "paper" area around the answer (this is what the PDF captures). */
 .pdf-content {
     background: #ffffff;
     color: #111827;
@@ -372,6 +426,7 @@ textarea::placeholder {
     padding: 28px;
 }
 
+/* Title inside the paper area: hidden on screen, shown when printing (see @media print). */
 .pdf-title {
     display: none;
     color: #111827;
@@ -379,6 +434,7 @@ textarea::placeholder {
     margin-bottom: 20px;
 }
 
+/* The rendered answer (Markdown converted to HTML). Wide tables scroll sideways. */
 .result-box {
     background: #ffffff;
     color: #1f2937;
@@ -388,6 +444,7 @@ textarea::placeholder {
     overflow-x: auto;
 }
 
+/* Headings inside the answer. */
 .result-box h1,
 .result-box h2,
 .result-box h3 {
@@ -398,12 +455,14 @@ textarea::placeholder {
     font-weight: 800;
 }
 
+/* No extra space above the very first heading. */
 .result-box h1:first-child,
 .result-box h2:first-child,
 .result-box h3:first-child {
     margin-top: 0;
 }
 
+/* Answer heading sizes, one rule per level. */
 .result-box h1 {
     font-size: 2rem;
     border-bottom: 3px solid #2563eb;
@@ -425,6 +484,7 @@ textarea::placeholder {
     color: #1d4ed8;
 }
 
+/* Paragraphs, lists, bold text and separator lines inside the answer. */
 .result-box p {
     margin-bottom: 14px;
     line-height: 1.75;
@@ -453,6 +513,7 @@ textarea::placeholder {
     margin: 24px 0;
 }
 
+/* Tables inside the answer (e.g. the budget table). */
 .result-box table {
     width: 100%;
     border-collapse: collapse;
@@ -460,6 +521,7 @@ textarea::placeholder {
     color: #374151;
 }
 
+/* Table cells. */
 .result-box th,
 .result-box td {
     border: 1px solid #e5e7eb;
@@ -467,12 +529,14 @@ textarea::placeholder {
     text-align: left;
 }
 
+/* Table header row. */
 .result-box th {
     background: #eff6ff;
     color: #111827;
     font-weight: 800;
 }
 
+/* The red error box. */
 .error-box {
     margin-top: 22px;
     padding: 18px 20px;
@@ -483,6 +547,7 @@ textarea::placeholder {
     line-height: 1.5;
 }
 
+/* The spinning circle in the send button: a ring with one white side, rotated by the spin animation. */
 .loader {
     display: inline-block;
     width: 18px;
@@ -493,10 +558,12 @@ textarea::placeholder {
     animation: spin 0.85s linear infinite;
 }
 
+/* Used everywhere to hide an element; script.js adds/removes this class. */
 .hidden {
     display: none;
 }
 
+/* Grey footer line at the bottom. */
 footer {
     text-align: center;
     color: #64748b;
@@ -504,12 +571,14 @@ footer {
     font-size: 0.92rem;
 }
 
+/* Animation: rotate a full turn (used by .loader). */
 @keyframes spin {
     to {
         transform: rotate(360deg);
     }
 }
 
+/* Rules used only when printing the page (Ctrl+P): hide everything except the answer, on white. */
 @media print {
     body {
         background: #ffffff;
@@ -536,6 +605,7 @@ footer {
     }
 }
 
+/* Phones and narrow windows (760px or less): stack columns vertically, smaller padding. */
 @media (max-width: 760px) {
     .app-container {
         padding-top: 34px;

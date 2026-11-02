@@ -1,2 +1,7 @@
+# requirements-dev.txt - extra packages for development and testing.
+# Install: pip install -r requirements-dev.txt
+
+# include everything from requirements.txt
 -r requirements.txt
+# the test runner (run the tests with: pytest)
 pytest==9.1.1

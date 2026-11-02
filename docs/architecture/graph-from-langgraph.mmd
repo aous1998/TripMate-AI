@@ -3,6 +3,9 @@ config:
   flowchart:
     curve: linear
 ---
+%% docs/architecture/graph-from-langgraph.mmd - the graph exactly as LangGraph itself draws it
+%% (travel_graph.get_graph().draw_mermaid()). Paste it into https://mermaid.live to view it.
+%% Dotted arrows are conditional edges (the router function chooses one of them).
 graph TD;
 	__start__([<p>__start__</p>]):::first
 	input_guardrail(input_guardrail)
