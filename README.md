@@ -219,6 +219,16 @@ python -m pytest
 TEST_DATABASE_URL="postgresql://postgres:password@localhost:5432/travel_db?sslmode=disable" python -m pytest
 ```
 
+## Architecture Diagrams
+
+Fifteen diagrams, built from the code and checked against it, live in [`docs/architecture/`](docs/architecture/) (open the `.excalidraw` files at https://excalidraw.com):
+
+- `architecture.excalidraw`: read-this-first, context, containers, the LangGraph graph, one traced request, data and state, trust and safety
+- `interview-diagrams.excalidraw`: request lifecycle, LLM calls, tool call over MCP, failure modes, data model, latency and cost, evaluation, deployment and scaling
+- `system-design.excalidraw`: a one-page whiteboard system design
+
+[`INTERVIEW.md`](docs/architecture/INTERVIEW.md) maps common AI system design interview questions to these diagrams, with measured numbers and trade-offs.
+
 ## Contributing
 
 Contributions are welcome. If you want to improve the app, add new travel features, or fix issues:
